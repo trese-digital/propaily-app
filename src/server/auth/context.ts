@@ -9,7 +9,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { db } from "@/server/db/client";
+import { dbBypass } from "@/server/db/scoped";
 import { ensureUserSynced } from "@/server/auth/sync-user";
 
 export type AppContext = {
@@ -35,7 +35,10 @@ export async function requireContext(): Promise<AppContext> {
     (authUser.user_metadata?.name as string | undefined) ?? null,
   );
 
-  const m = await db.membership.findFirst({
+  // Membership es pre-tenant: necesitamos resolverla antes de saber qué MC
+  // settear para RLS. Por eso usa `dbBypass`. El filtro por userId viene de
+  // la sesión Supabase verificada.
+  const m = await dbBypass.membership.findFirst({
     where: { userId: dbUser.id, status: "active" },
     include: { managementCompany: true },
   });

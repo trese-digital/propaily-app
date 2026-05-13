@@ -5,7 +5,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { db } from "@/server/db/client";
+import { dbApp } from "@/server/db/scoped";
 import { requireAddon } from "@/server/access/require-addon";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const rows = await db.$queryRaw<Row[]>`
+  const rows = await dbApp.$queryRaw<Row[]>`
     SELECT
         p.id::text                      AS id,
         p.area_m2::text                 AS area_m2,

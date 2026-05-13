@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 
 const UNIT_TYPES = [
@@ -45,13 +45,9 @@ function readForm(formData: FormData) {
 export type UnitFormState = { error?: string; ok?: boolean; ts?: number };
 
 async function checkPropertyOwnership(propertyId: string, mcId: string) {
-  return db.property.findFirst({
-    where: {
-      id: propertyId,
-      portfolio: { client: { managementCompanyId: mcId } },
-      deletedAt: null,
-    },
-  });
+  return withTenant(mcId, (tx) =>
+    tx.property.findFirst({ where: { id: propertyId, deletedAt: null } }),
+  );
 }
 
 export async function crearUnidad(
@@ -71,21 +67,23 @@ export async function crearUnidad(
   );
   if (!property) return { error: "Propiedad no encontrada" };
 
-  await db.unit.create({
-    data: {
-      propertyId: property.id,
-      name: v.name,
-      type: v.type,
-      areaSqm: v.areaSqm != null ? v.areaSqm.toString() : null,
-      monthlyRentCents:
-        v.monthlyRentMxn != null ? BigInt(Math.round(v.monthlyRentMxn * 100)) : null,
-      currency: "MXN",
-      currentTenantName: v.currentTenantName ?? null,
-      internalNotes: v.internalNotes ?? null,
-      operationalStatus: "active",
-      status: "active",
-    },
-  });
+  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.unit.create({
+      data: {
+        propertyId: property.id,
+        name: v.name,
+        type: v.type,
+        areaSqm: v.areaSqm != null ? v.areaSqm.toString() : null,
+        monthlyRentCents:
+          v.monthlyRentMxn != null ? BigInt(Math.round(v.monthlyRentMxn * 100)) : null,
+        currency: "MXN",
+        currentTenantName: v.currentTenantName ?? null,
+        internalNotes: v.internalNotes ?? null,
+        operationalStatus: "active",
+        status: "active",
+      },
+    }),
+  );
 
   revalidatePath(`/propiedades/${property.id}`);
   return { ok: true, ts: Date.now() };
@@ -98,15 +96,9 @@ export async function editarUnidad(
 ): Promise<UnitFormState> {
   const ctx = await requireContext();
   // En edición no recibimos propertyId del form; lo resolvemos por unitId.
-  const existing = await db.unit.findFirst({
-    where: {
-      id: unitId,
-      property: {
-        portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      },
-      deletedAt: null,
-    },
-  });
+  const existing = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.unit.findFirst({ where: { id: unitId, deletedAt: null } }),
+  );
   if (!existing) return { error: "Unidad no encontrada" };
 
   // Reutilizamos el schema pero inyectamos propertyId desde la DB.
@@ -118,18 +110,20 @@ export async function editarUnidad(
   }
   const v = parsed.data;
 
-  await db.unit.update({
-    where: { id: unitId },
-    data: {
-      name: v.name,
-      type: v.type,
-      areaSqm: v.areaSqm != null ? v.areaSqm.toString() : null,
-      monthlyRentCents:
-        v.monthlyRentMxn != null ? BigInt(Math.round(v.monthlyRentMxn * 100)) : null,
-      currentTenantName: v.currentTenantName ?? null,
-      internalNotes: v.internalNotes ?? null,
-    },
-  });
+  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.unit.update({
+      where: { id: unitId },
+      data: {
+        name: v.name,
+        type: v.type,
+        areaSqm: v.areaSqm != null ? v.areaSqm.toString() : null,
+        monthlyRentCents:
+          v.monthlyRentMxn != null ? BigInt(Math.round(v.monthlyRentMxn * 100)) : null,
+        currentTenantName: v.currentTenantName ?? null,
+        internalNotes: v.internalNotes ?? null,
+      },
+    }),
+  );
 
   revalidatePath(`/propiedades/${existing.propertyId}`);
   return { ok: true, ts: Date.now() };
@@ -139,22 +133,17 @@ export async function eliminarUnidad(
   unitId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const unit = await db.unit.findFirst({
-    where: {
-      id: unitId,
-      property: {
-        portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      },
-      deletedAt: null,
-    },
-  });
-  if (!unit) return { error: "Unidad no encontrada" };
-
-  await db.unit.update({
-    where: { id: unit.id },
-    data: { status: "deleted", deletedAt: new Date() },
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const unit = await tx.unit.findFirst({ where: { id: unitId, deletedAt: null } });
+    if (!unit) return { error: "Unidad no encontrada" } as const;
+    await tx.unit.update({
+      where: { id: unit.id },
+      data: { status: "deleted", deletedAt: new Date() },
+    });
+    return { propertyId: unit.propertyId } as const;
   });
 
-  revalidatePath(`/propiedades/${unit.propertyId}`);
+  if ("error" in result) return result;
+  revalidatePath(`/propiedades/${result.propertyId}`);
   return { ok: true };
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -31,13 +31,9 @@ export async function setPropertyCoverPhoto(
   if (!(file instanceof File) || file.size === 0) return { error: "Selecciona una imagen" };
   if (file.size > MAX_INPUT) return { error: "La imagen excede 10 MB" };
 
-  const property = await db.property.findFirst({
-    where: {
-      id: propertyId,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-  });
+  const property = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.property.findFirst({ where: { id: propertyId, deletedAt: null } }),
+  );
   if (!property) return { error: "Propiedad no encontrada" };
 
   // Validación de formato real con sharp (no por file.type del browser).
@@ -74,10 +70,12 @@ export async function setPropertyCoverPhoto(
   });
   if (up.error) return { error: up.error.message };
 
-  await db.property.update({
-    where: { id: property.id },
-    data: { coverPhotoStorageKey: storageKey },
-  });
+  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.property.update({
+      where: { id: property.id },
+      data: { coverPhotoStorageKey: storageKey },
+    }),
+  );
 
   revalidatePath(`/propiedades/${property.id}`);
   revalidatePath("/propiedades");

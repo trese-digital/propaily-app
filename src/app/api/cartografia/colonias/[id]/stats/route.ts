@@ -6,7 +6,9 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { db } from "@/server/db/client";
+// Mezcla queries: public.predios (sin RLS) + propaily.Property.count (con RLS).
+// Para la query a propaily usamos withTenant; para catastro basta dbApp.
+import { dbApp, withTenant } from "@/server/db/scoped";
 import { requireAddon } from "@/server/access/require-addon";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,7 +36,7 @@ export async function GET(
     );
   }
 
-  const rows = await db.$queryRaw<Row[]>`
+  const rows = await dbApp.$queryRaw<Row[]>`
     SELECT
         COUNT(*)                                                       AS num_lotes,
         AVG(area_m2)::text                                             AS area_avg,
@@ -47,11 +49,16 @@ export async function GET(
   `;
   const r = rows[0];
 
-  // Propiedades de Propaily vinculadas a esta colonia (sin filtrar por tenant
-  // porque estas estadísticas son del catastro público, no de un cliente).
-  const numPropiedadesPropaily = await db.property.count({
-    where: { cartoColoniaId: id, deletedAt: null, status: { not: "deleted" } },
-  });
+  // Propiedades de Propaily vinculadas a esta colonia. RLS hace que el count
+  // sea el del tenant activo, lo que en realidad es lo que queremos para
+  // mostrar al cliente ("tienes X propiedades en esta colonia"). Antes el
+  // comentario decía "sin filtrar por tenant" pero esa era la lectura cuando
+  // el código corría como gfc — ahora con RLS el filtro es automático.
+  const numPropiedadesPropaily = await withTenant(gate.managementCompanyId, (tx) =>
+    tx.property.count({
+      where: { cartoColoniaId: id, deletedAt: null, status: { not: "deleted" } },
+    }),
+  );
 
   const num = (v: string | null) => (v == null ? null : Number(v));
 

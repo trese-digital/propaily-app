@@ -6,14 +6,16 @@
  * memberships, comments, tasks, etc.). El `id` debe coincidir con el UUID
  * que Supabase genera para que las relaciones referencien la misma identidad.
  */
-import { db } from "@/server/db/client";
+// User no tiene RLS pero está en schema propaily. Usar dbBypass para evitar
+// depender del rol gfc en runtime.
+import { dbBypass } from "@/server/db/scoped";
 
 export async function ensureUserSynced(
   supabaseUserId: string,
   email: string,
   name?: string | null,
 ) {
-  return db.user.upsert({
+  return dbBypass.user.upsert({
     where: { id: supabaseUserId },
     update: {
       email,

@@ -9,13 +9,13 @@
  * Mañana: cuando ManagementCompany tenga flag `isPlatformOperator`, este
  * helper cambia su query sin tocar middleware ni layouts.
  */
-import { db } from "@/server/db/client";
+import { dbBypass } from "@/server/db/scoped";
 
 const GF_MC_NAME = "GF Consultoría";
 const STAFF_ROLES = new Set(["super_admin", "company_admin"]);
 
 export async function isGfStaff(userId: string): Promise<boolean> {
-  const m = await db.membership.findFirst({
+  const m = await dbBypass.membership.findFirst({
     where: {
       userId,
       status: "active",

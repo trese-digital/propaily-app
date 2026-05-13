@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { dbApp } from "@/server/db/scoped";
 import { PropertyForm } from "@/components/property-form";
 
 export default async function NuevaPropiedadPage({
@@ -25,9 +26,8 @@ export default async function NuevaPropiedadPage({
   } | null = null;
   if (sp.coloniaId) {
     try {
-      const rows = await (
-        await import("@/server/db/client")
-      ).db.$queryRaw<
+      // Solo schema public (sin RLS) — dbApp tiene grants suficientes.
+      const rows = await dbApp.$queryRaw<
         Array<{
           nombre: string | null;
           sector: number | null;

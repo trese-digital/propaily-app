@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 import { DocumentsSection, type DocumentRow } from "./documents-section";
 import { CoverPhoto } from "./cover-photo";
@@ -47,17 +47,15 @@ export default async function PropiedadDetallePage({
   const ctx = await requireContext();
   const { id } = await params;
 
-  const p = await db.property.findFirst({
-    where: {
-      id,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-    include: {
-      portfolio: { include: { client: true } },
-      units: { where: { deletedAt: null }, orderBy: { createdAt: "asc" } },
-    },
-  });
+  const p = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.property.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        portfolio: { include: { client: true } },
+        units: { where: { deletedAt: null }, orderBy: { createdAt: "asc" } },
+      },
+    }),
+  );
   if (!p) notFound();
 
   const unitRows: UnitRow[] = p.units.map((u) => ({
@@ -81,34 +79,48 @@ export default async function PropiedadDetallePage({
     valor_com_max: string | null;
     predio_area: string | null;
   };
-  let carto: CartoRow | null = null;
-  if (p.cartoColoniaId || p.cartoPredioId) {
-    const rows = await db.$queryRaw<CartoRow[]>`
-      SELECT
-        c.nombre                              AS colonia,
-        c.sector,
-        v.tipo_zona,
-        v.descripcion_zona,
-        v.valor_fiscal::text                  AS valor_fiscal,
-        v.valor_comercial_min::text           AS valor_com_min,
-        v.valor_comercial_max::text           AS valor_com_max,
-        pr.area_m2::text                      AS predio_area
-      FROM public.colonias c
-      LEFT JOIN public.valores_colonia v
-             ON v.colonia_id = c.id AND v.ano = 2026
-      LEFT JOIN public.predios pr
-             ON pr.id = ${p.cartoPredioId ?? null}::uuid
-      WHERE c.id = ${p.cartoColoniaId ?? null}::uuid
-      LIMIT 1
-    `;
-    carto = rows[0] ?? null;
-  }
+  // El catastro (schema public) no tiene RLS — no requiere withTenant.
+  // Pero el catastroId que viajamos ya viene de p, que SÍ pasó por RLS arriba,
+  // así que esta query catastral es segura.
+  const { carto, documents, photos } = await withTenant(
+    ctx.membership.managementCompanyId,
+    async (tx) => {
+      let carto: CartoRow | null = null;
+      if (p.cartoColoniaId || p.cartoPredioId) {
+        const rows = await tx.$queryRaw<CartoRow[]>`
+          SELECT
+            c.nombre                              AS colonia,
+            c.sector,
+            v.tipo_zona,
+            v.descripcion_zona,
+            v.valor_fiscal::text                  AS valor_fiscal,
+            v.valor_comercial_min::text           AS valor_com_min,
+            v.valor_comercial_max::text           AS valor_com_max,
+            pr.area_m2::text                      AS predio_area
+          FROM public.colonias c
+          LEFT JOIN public.valores_colonia v
+                 ON v.colonia_id = c.id AND v.ano = 2026
+          LEFT JOIN public.predios pr
+                 ON pr.id = ${p.cartoPredioId ?? null}::uuid
+          WHERE c.id = ${p.cartoColoniaId ?? null}::uuid
+          LIMIT 1
+        `;
+        carto = rows[0] ?? null;
+      }
 
-  const documents = await db.document.findMany({
-    where: { propertyId: p.id, status: { not: "deleted" }, deletedAt: null },
-    include: { versions: { orderBy: { version: "desc" }, take: 1 } },
-    orderBy: { createdAt: "desc" },
-  });
+      const documents = await tx.document.findMany({
+        where: { propertyId: p.id, status: { not: "deleted" }, deletedAt: null },
+        include: { versions: { orderBy: { version: "desc" }, take: 1 } },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const photos = await tx.propertyPhoto.findMany({
+        where: { propertyId: p.id },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+      });
+      return { carto, documents, photos };
+    },
+  );
   const documentRows: DocumentRow[] = documents.map((d) => ({
     id: d.id,
     name: d.name,
@@ -131,10 +143,6 @@ export default async function PropiedadDetallePage({
     ? await getPropertyCoverUrl(p.coverPhotoStorageKey)
     : null;
 
-  const photos = await db.propertyPhoto.findMany({
-    where: { propertyId: p.id },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
   const photoUrls = await Promise.all(photos.map((ph) => getPhotoUrl(ph.storageKey)));
   const photoRows: PhotoRow[] = photos.map((ph, i) => ({
     id: ph.id,

@@ -11,7 +11,11 @@
  */
 import { headers } from "next/headers";
 
-import { db } from "@/server/db/client";
+// AuditLog está bloqueado por RLS para `propaily_app` (policy USING(false)).
+// El log se escribe con `dbBypass` — esto es deliberado: el actor está
+// identificado en la fila, así que sólo el staff GF y los scripts de
+// mantenimiento ven la traza.
+import { dbBypass } from "@/server/db/scoped";
 
 export type AuditAction =
   | "view"
@@ -40,7 +44,7 @@ export async function logAccess(
   opts: LogAccessOpts & { ipAddress?: string | null; userAgent?: string | null },
 ): Promise<void> {
   try {
-    await db.auditLog.create({
+    await dbBypass.auditLog.create({
       data: {
         actorId: opts.actorId,
         managementCompanyId: opts.managementCompanyId ?? null,

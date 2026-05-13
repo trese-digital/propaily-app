@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 
 const numFmt = new Intl.NumberFormat("es-MX");
@@ -30,40 +30,38 @@ function greeting(): string {
 
 export default async function HomePage() {
   const ctx = await requireContext();
-  const companyFilter = {
-    portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-  };
 
-  const [propertyCount, portfolioCount, documentCount, recentProperties, valueAgg] =
-    await Promise.all([
-      db.property.count({ where: { ...companyFilter, deletedAt: null } }),
-      db.portfolio.count({
-        where: { client: { managementCompanyId: ctx.membership.managementCompanyId }, deletedAt: null },
-      }),
-      db.document.count({
-        where: { property: { ...companyFilter, deletedAt: null }, deletedAt: null },
-      }),
-      db.property.findMany({
-        where: { ...companyFilter, deletedAt: null },
-        orderBy: { updatedAt: "desc" },
-        take: 4,
-        select: {
-          id: true,
-          name: true,
-          city: true,
-          landAreaSqm: true,
-          builtAreaSqm: true,
-          currentValueCents: true,
-          fiscalValueCents: true,
-          operationalStatus: true,
-          coverPhotoStorageKey: true,
-        },
-      }),
-      db.property.aggregate({
-        where: { ...companyFilter, deletedAt: null },
-        _sum: { currentValueCents: true, fiscalValueCents: true },
-      }),
-    ]);
+  // RLS scopea por managementCompanyId. Los `where` ya no necesitan mencionarlo.
+  const { propertyCount, portfolioCount, documentCount, recentProperties, valueAgg } =
+    await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+      const [propertyCount, portfolioCount, documentCount, recentProperties, valueAgg] =
+        await Promise.all([
+          tx.property.count({ where: { deletedAt: null } }),
+          tx.portfolio.count({ where: { deletedAt: null } }),
+          tx.document.count({ where: { deletedAt: null } }),
+          tx.property.findMany({
+            where: { deletedAt: null },
+            orderBy: { updatedAt: "desc" },
+            take: 4,
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              landAreaSqm: true,
+              builtAreaSqm: true,
+              currentValueCents: true,
+              fiscalValueCents: true,
+              operationalStatus: true,
+              coverPhotoStorageKey: true,
+            },
+          }),
+          tx.property.aggregate({
+            where: { deletedAt: null },
+            _sum: { currentValueCents: true, fiscalValueCents: true },
+          }),
+        ]);
+      return { propertyCount, portfolioCount, documentCount, recentProperties, valueAgg };
+    });
 
   const totalValue =
     valueAgg._sum.currentValueCents ?? valueAgg._sum.fiscalValueCents ?? 0n;

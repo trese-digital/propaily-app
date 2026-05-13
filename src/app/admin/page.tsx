@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { db } from "@/server/db/client";
+import { dbBypass } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 import { logAdminAccess } from "@/server/audit/log";
 
@@ -12,9 +12,9 @@ export default async function AdminHome() {
 
   // Conteos cross-tenant. Cada vista al dashboard queda registrada.
   const [tenants, propiedades, avaluosPendientes] = await Promise.all([
-    db.managementCompany.count({ where: { deletedAt: null } }),
-    db.property.count({ where: { deletedAt: null, status: { not: "deleted" } } }),
-    db.valuationRequest.count({ where: { status: "pending" } }),
+    dbBypass.managementCompany.count({ where: { deletedAt: null } }),
+    dbBypass.property.count({ where: { deletedAt: null, status: { not: "deleted" } } }),
+    dbBypass.valuationRequest.count({ where: { status: "pending" } }),
     logAdminAccess({
       actorId: ctx.user.id,
       action: "view",

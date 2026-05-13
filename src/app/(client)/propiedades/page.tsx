@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 import type { Prisma } from "@prisma/client";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
 
@@ -72,8 +72,9 @@ export default async function PropiedadesPage({
   const tipoFilter = sp.tipo && VALID_TYPES.has(sp.tipo) ? sp.tipo : "";
   const estadoFilter = sp.estado && VALID_STATUS.has(sp.estado) ? sp.estado : "";
 
+  // RLS hace el scoping por managementCompanyId. baseWhere se queda con los
+  // filtros propios del modelo (soft-delete y status).
   const baseWhere: Prisma.PropertyWhereInput = {
-    portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
     status: { not: "deleted" },
     deletedAt: null,
   };
@@ -87,22 +88,30 @@ export default async function PropiedadesPage({
       : {}),
   };
 
-  const ciudadesRaw = await db.property.findMany({
-    where: { ...baseWhere, city: { not: null } },
-    distinct: ["city"],
-    select: { city: true },
-    orderBy: { city: "asc" },
-  });
-  const ciudades = ciudadesRaw
-    .map((r) => r.city)
-    .filter((c): c is string => !!c && c.trim().length > 0);
+  const { ciudades, properties, totalUnfiltered } = await withTenant(
+    ctx.membership.managementCompanyId,
+    async (tx) => {
+      const ciudadesRaw = await tx.property.findMany({
+        where: { ...baseWhere, city: { not: null } },
+        distinct: ["city"],
+        select: { city: true },
+        orderBy: { city: "asc" },
+      });
+      const ciudades = ciudadesRaw
+        .map((r) => r.city)
+        .filter((c): c is string => !!c && c.trim().length > 0);
 
-  const properties = await db.property.findMany({
-    where,
-    include: { portfolio: { include: { client: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+      const properties = await tx.property.findMany({
+        where,
+        include: { portfolio: { include: { client: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+
+      const totalUnfiltered = await tx.property.count({ where: baseWhere });
+      return { ciudades, properties, totalUnfiltered };
+    },
+  );
 
   const coverUrls = await Promise.all(
     properties.map((p) =>
@@ -110,7 +119,6 @@ export default async function PropiedadesPage({
     ),
   );
 
-  const totalUnfiltered = await db.property.count({ where: baseWhere });
   const filtered = properties.length;
   const isFiltered = !!(ciudadFilter || tipoFilter || estadoFilter);
 
@@ -187,9 +195,9 @@ export default async function PropiedadesPage({
   );
 }
 
-type PropertyRow = Awaited<ReturnType<typeof db.property.findMany>>[number] & {
-  portfolio: { client: { name: string } };
-};
+type PropertyRow = Prisma.PropertyGetPayload<{
+  include: { portfolio: { include: { client: true } } };
+}>;
 
 function StatusBadge({ status }: { status: string }) {
   const tone = STATUS_TONE[status] ?? STATUS_TONE.inactive;

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -60,6 +60,7 @@ async function uploadOnePhoto(opts: {
   displayOrder: number;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const { propertyId, managementCompanyId, file, displayOrder } = opts;
+  void managementCompanyId; // ya scopeado por withTenant arriba; se queda como key del path
 
   if (file.size > MAX_SIZE) {
     return { ok: false, error: `${file.name} excede 10 MB` };
@@ -91,18 +92,20 @@ async function uploadOnePhoto(opts: {
   });
   if (up.error) return { ok: false, error: up.error.message };
 
-  await db.propertyPhoto.create({
-    data: {
-      id: photoId,
-      propertyId,
-      storageKey,
-      displayOrder,
-      sizeBytes: optimized.data.length,
-      contentType: "image/webp",
-      width: optimized.width,
-      height: optimized.height,
-    },
-  });
+  await withTenant(opts.managementCompanyId, (tx) =>
+    tx.propertyPhoto.create({
+      data: {
+        id: photoId,
+        propertyId,
+        storageKey,
+        displayOrder,
+        sizeBytes: optimized.data.length,
+        contentType: "image/webp",
+        width: optimized.width,
+        height: optimized.height,
+      },
+    }),
+  );
   return { ok: true };
 }
 
@@ -117,16 +120,14 @@ export async function addPropertyPhoto(
   if (!propertyId) return { error: "propertyId requerido" };
   if (files.length === 0) return { error: "Selecciona al menos una imagen" };
 
-  const property = await db.property.findFirst({
-    where: {
-      id: propertyId,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-  });
+  const property = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.property.findFirst({ where: { id: propertyId, deletedAt: null } }),
+  );
   if (!property) return { error: "Propiedad no encontrada" };
 
-  const photoCount = await db.propertyPhoto.count({ where: { propertyId: property.id } });
+  const photoCount = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.propertyPhoto.count({ where: { propertyId: property.id } }),
+  );
   const availableSlots = MAX_PHOTOS_PER_PROPERTY - photoCount;
   if (availableSlots <= 0) {
     return { error: `Máximo ${MAX_PHOTOS_PER_PROPERTY} fotos por propiedad` };
@@ -167,20 +168,19 @@ export async function addPropertyPhoto(
 
 export async function deletePropertyPhoto(photoId: string): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const photo = await db.propertyPhoto.findFirst({
-    where: {
-      id: photoId,
-      property: {
-        portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      },
-    },
-    select: { id: true, propertyId: true, storageKey: true },
-  });
+  const photo = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.propertyPhoto.findFirst({
+      where: { id: photoId },
+      select: { id: true, propertyId: true, storageKey: true },
+    }),
+  );
   if (!photo) return { error: "Foto no encontrada" };
 
   const sb = createAdminClient();
   await sb.storage.from(BUCKET).remove([photo.storageKey]);
-  await db.propertyPhoto.delete({ where: { id: photo.id } });
+  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.propertyPhoto.delete({ where: { id: photo.id } }),
+  );
 
   revalidatePath(`/propiedades/${photo.propertyId}`);
   return { ok: true };
@@ -197,22 +197,19 @@ export async function setPropertyCoverFromPhoto(
   photoId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const photo = await db.propertyPhoto.findFirst({
-    where: {
-      id: photoId,
-      property: {
-        portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      },
-    },
-  });
-  if (!photo) return { error: "Foto no encontrada" };
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const photo = await tx.propertyPhoto.findFirst({ where: { id: photoId } });
+    if (!photo) return { error: "Foto no encontrada" } as const;
 
-  await db.property.update({
-    where: { id: photo.propertyId },
-    data: { coverPhotoStorageKey: photo.storageKey },
+    await tx.property.update({
+      where: { id: photo.propertyId },
+      data: { coverPhotoStorageKey: photo.storageKey },
+    });
+    return { propertyId: photo.propertyId } as const;
   });
 
-  revalidatePath(`/propiedades/${photo.propertyId}`);
+  if ("error" in result) return result;
+  revalidatePath(`/propiedades/${result.propertyId}`);
   revalidatePath("/propiedades");
   return { ok: true };
 }

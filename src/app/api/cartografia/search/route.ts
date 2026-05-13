@@ -5,7 +5,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { db } from "@/server/db/client";
+import { dbApp } from "@/server/db/scoped";
 import { requireAddon } from "@/server/access/require-addon";
 
 type Row = {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   const like = `%${q}%`;
   const prefix = `${q}%`;
 
-  const rows = await db.$queryRaw<Row[]>`
+  const rows = await dbApp.$queryRaw<Row[]>`
     WITH col AS (
         SELECT
           CASE

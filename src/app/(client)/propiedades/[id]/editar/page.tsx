@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 import { PropertyForm } from "@/components/property-form";
 import { DeletePropertyButton } from "./delete-button";
@@ -18,13 +18,9 @@ export default async function EditarPropiedadPage({
   const ctx = await requireContext();
   const { id } = await params;
 
-  const p = await db.property.findFirst({
-    where: {
-      id,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-  });
+  const p = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.property.findFirst({ where: { id, deletedAt: null } }),
+  );
   if (!p) notFound();
 
   return (

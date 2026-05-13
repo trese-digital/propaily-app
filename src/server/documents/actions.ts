@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { fileTypeFromBuffer } from "file-type";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -84,22 +84,18 @@ export async function uploadDocument(
     return { error: "Formato no soportado (PDF, JPG, PNG, WebP, HEIC)" };
   }
 
-  // Validar que la propiedad pertenece a la org del usuario.
-  const property = await db.property.findFirst({
-    where: {
-      id: v.propertyId,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-  });
-  if (!property) return { error: "Propiedad no encontrada" };
-
-  // Crear Document + DocumentVersion en transacción.
+  // withTenant abre $transaction y setea app.management_company_id — todas las
+  // queries de adentro respetan RLS y rolean back juntas si algo falla.
   const sb = createAdminClient();
   const filename = sanitizeFilename(file.name);
 
   try {
-    const doc = await db.$transaction(async (tx) => {
+    const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+      const property = await tx.property.findFirst({
+        where: { id: v.propertyId, deletedAt: null },
+      });
+      if (!property) return { error: "Propiedad no encontrada" } as const;
+
       const d = await tx.document.create({
         data: {
           propertyId: property.id,
@@ -137,10 +133,11 @@ export async function uploadDocument(
         data: { currentVersionId: dv.id },
       });
 
-      return d;
+      return { propertyId: property.id } as const;
     });
 
-    revalidatePath(`/propiedades/${property.id}`);
+    if ("error" in result) return result;
+    revalidatePath(`/propiedades/${result.propertyId}`);
     return { ok: true, ts: Date.now() };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error al subir" };
@@ -149,16 +146,12 @@ export async function uploadDocument(
 
 export async function getDocumentSignedUrl(documentId: string): Promise<{ url?: string; error?: string }> {
   const ctx = await requireContext();
-  const d = await db.document.findFirst({
-    where: {
-      id: documentId,
-      OR: [
-        { property: { portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } } } },
-      ],
-      status: { not: "deleted" },
-    },
-    include: { versions: { orderBy: { version: "desc" }, take: 1 } },
-  });
+  const d = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+    tx.document.findFirst({
+      where: { id: documentId, status: { not: "deleted" } },
+      include: { versions: { orderBy: { version: "desc" }, take: 1 } },
+    }),
+  );
   if (!d || !d.versions[0]) return { error: "Documento no encontrado" };
 
   const sb = createAdminClient();
@@ -188,47 +181,45 @@ export async function editDocument(
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
 
-  const d = await db.document.findFirst({
-    where: {
-      id: documentId,
-      property: { portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } } },
-      status: { not: "deleted" },
-    },
-    select: { id: true, propertyId: true },
-  });
-  if (!d) return { error: "Documento no encontrado" };
-
-  await db.document.update({
-    where: { id: d.id },
-    data: {
-      name: parsed.data.name,
-      category: parsed.data.category,
-      sensitivity: parsed.data.sensitivity,
-    },
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const d = await tx.document.findFirst({
+      where: { id: documentId, status: { not: "deleted" } },
+      select: { id: true, propertyId: true },
+    });
+    if (!d) return { error: "Documento no encontrado" } as const;
+    await tx.document.update({
+      where: { id: d.id },
+      data: {
+        name: parsed.data.name,
+        category: parsed.data.category,
+        sensitivity: parsed.data.sensitivity,
+      },
+    });
+    return { propertyId: d.propertyId } as const;
   });
 
-  if (d.propertyId) revalidatePath(`/propiedades/${d.propertyId}`);
+  if ("error" in result) return result;
+  if (result.propertyId) revalidatePath(`/propiedades/${result.propertyId}`);
   return { ok: true, ts: Date.now() };
 }
 
 export async function deleteDocument(documentId: string): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const d = await db.document.findFirst({
-    where: {
-      id: documentId,
-      property: { portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } } },
-      status: { not: "deleted" },
-    },
-    select: { id: true, propertyId: true },
-  });
-  if (!d) return { error: "Documento no encontrado" };
-
-  // Soft delete (los archivos quedan en storage para auditoría).
-  await db.document.update({
-    where: { id: d.id },
-    data: { status: "deleted", deletedAt: new Date() },
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const d = await tx.document.findFirst({
+      where: { id: documentId, status: { not: "deleted" } },
+      select: { id: true, propertyId: true },
+    });
+    if (!d) return { error: "Documento no encontrado" } as const;
+    // Soft delete (los archivos quedan en storage para auditoría).
+    await tx.document.update({
+      where: { id: d.id },
+      data: { status: "deleted", deletedAt: new Date() },
+    });
+    return { propertyId: d.propertyId } as const;
   });
 
-  if (d.propertyId) revalidatePath(`/propiedades/${d.propertyId}`);
+  if ("error" in result) return result;
+  if (result.propertyId) revalidatePath(`/propiedades/${result.propertyId}`);
   return { ok: true };
 }

@@ -7,7 +7,9 @@
  *
  * Fail-closed: sin Subscription, sin status active, o endDate pasada → false.
  */
-import { db } from "@/server/db/client";
+// Subscription está bloqueada por RLS para `propaily_app` (policy USING(false)).
+// Sólo `dbBypass` puede leerla.
+import { dbBypass } from "@/server/db/scoped";
 
 export type Addon = "cartografia" | "insights" | "calculadoras";
 
@@ -20,7 +22,7 @@ const NONE: AddonState = {
 };
 
 export async function getEnabledAddons(managementCompanyId: string): Promise<AddonState> {
-  const sub = await db.subscription.findUnique({
+  const sub = await dbBypass.subscription.findUnique({
     where: { managementCompanyId },
     select: {
       cartografiaEnabled: true,

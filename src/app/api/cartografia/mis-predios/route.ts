@@ -9,7 +9,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { parseBbox } from "@/server/cartografia/bbox";
 import { requireAddon } from "@/server/access/require-addon";
 
@@ -37,25 +37,32 @@ export async function GET(request: NextRequest) {
   const { w, s, e, n } = bboxResult.bbox;
   const mcId = gate.managementCompanyId;
 
-  const rows = await db.$queryRaw<Row[]>`
-    SELECT
-        p.id::text                       AS predio_id,
-        p.area_m2::text                  AS area_m2,
-        public.ST_AsGeoJSON(p.geom)::json AS geom,
-        prop.id::text                    AS property_id,
-        prop.name                        AS property_name
-    FROM propaily."Property" prop
-    JOIN propaily."Portfolio" port ON port.id = prop."portfolioId"
-    JOIN propaily."Client"    cli  ON cli.id  = port."clientId"
-    JOIN public.predios        p   ON p.id    = prop."cartoPredioId"
-    WHERE cli."managementCompanyId" = ${mcId}::uuid
-      AND prop."cartoPredioId" IS NOT NULL
-      AND prop."deletedAt" IS NULL
-      AND port."deletedAt" IS NULL
-      AND cli."deletedAt"  IS NULL
-      AND p.geom && public.ST_MakeEnvelope(${w}, ${s}, ${e}, ${n}, 4326)
-    LIMIT 2000
-  `;
+  // El JOIN cruza schemas (propaily.Property → public.predios). withTenant
+  // setea app.management_company_id para que RLS filtre Property/Portfolio/Client.
+  // Quitamos el filtro explícito `cli."managementCompanyId" = mcId` porque RLS
+  // ya lo hace; lo dejamos como defensa redundante en el WHERE — si por algún
+  // motivo RLS no estuviera activo, el filtro sigue ahí.
+  const rows = await withTenant(mcId, (tx) =>
+    tx.$queryRaw<Row[]>`
+      SELECT
+          p.id::text                       AS predio_id,
+          p.area_m2::text                  AS area_m2,
+          public.ST_AsGeoJSON(p.geom)::json AS geom,
+          prop.id::text                    AS property_id,
+          prop.name                        AS property_name
+      FROM propaily."Property" prop
+      JOIN propaily."Portfolio" port ON port.id = prop."portfolioId"
+      JOIN propaily."Client"    cli  ON cli.id  = port."clientId"
+      JOIN public.predios        p   ON p.id    = prop."cartoPredioId"
+      WHERE cli."managementCompanyId" = ${mcId}::uuid
+        AND prop."cartoPredioId" IS NOT NULL
+        AND prop."deletedAt" IS NULL
+        AND port."deletedAt" IS NULL
+        AND cli."deletedAt"  IS NULL
+        AND p.geom && public.ST_MakeEnvelope(${w}, ${s}, ${e}, ${n}, 4326)
+      LIMIT 2000
+    `,
+  );
 
   const features = rows.map((r) => ({
     type: "Feature" as const,

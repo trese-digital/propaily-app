@@ -10,7 +10,7 @@
  */
 import { NextResponse } from "next/server";
 
-import { db } from "@/server/db/client";
+import { dbBypass } from "@/server/db/scoped";
 import { createClient } from "@/lib/supabase/server";
 import { hasAddon, type Addon } from "@/server/access/has-addon";
 
@@ -36,7 +36,7 @@ export async function requireAddon(addon: Addon): Promise<Ok | Err> {
     };
   }
 
-  const membership = await db.membership.findFirst({
+  const membership = await dbBypass.membership.findFirst({
     where: { userId: user.id, status: "active" },
     select: { managementCompanyId: true },
   });

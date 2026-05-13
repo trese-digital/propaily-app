@@ -6,7 +6,9 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { db } from "@/server/db/client";
+// Queries puramente catastrales (schema public, sin RLS). dbApp tiene GRANT
+// SELECT en public.* — basta con eso.
+import { dbApp } from "@/server/db/scoped";
 import { parseBbox } from "@/server/cartografia/bbox";
 import { requireAddon } from "@/server/access/require-addon";
 
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
   }
   const { w, s, e, n } = parsed.bbox;
 
-  const rows = await db.$queryRaw<Row[]>`
+  const rows = await dbApp.$queryRaw<Row[]>`
     SELECT
         c.id::text                              AS id,
         c.sector,

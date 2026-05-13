@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { db } from "@/server/db/client";
+import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
 
 const PROP_TYPES = [
@@ -106,43 +106,43 @@ export async function crearPropiedad(
   }
   const v = parsed.data;
 
-  const defaultPortfolio = await db.portfolio.findFirst({
-    where: {
-      client: { managementCompanyId: ctx.membership.managementCompanyId },
-      name: "General",
-      status: "active",
-    },
-    orderBy: { createdAt: "asc" },
-  });
-  if (!defaultPortfolio) {
-    return { error: "No hay portafolio por defecto. Corre seed-org.mjs." };
-  }
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const defaultPortfolio = await tx.portfolio.findFirst({
+      where: { name: "General", status: "active" },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!defaultPortfolio) {
+      return { error: "No hay portafolio por defecto. Corre seed-org.mjs." } as const;
+    }
 
-  const property = await db.property.create({
-    data: {
-      portfolioId: defaultPortfolio.id,
-      name: v.name,
-      type: v.type,
-      operationalStatus: v.operationalStatus ?? "active",
-      address: v.address ?? null,
-      latitude: v.latitude != null ? v.latitude.toString() : null,
-      longitude: v.longitude != null ? v.longitude.toString() : null,
-      landAreaSqm: v.landAreaSqm != null ? v.landAreaSqm.toString() : null,
-      builtAreaSqm: v.builtAreaSqm != null ? v.builtAreaSqm.toString() : null,
-      fiscalValueCents: toBigIntCents(v.fiscalValueMxn),
-      commercialValueCents: toBigIntCents(v.commercialValueMxn),
-      insuranceValueCents: toBigIntCents(v.insuranceValueMxn),
-      expectedRentCents: toBigIntCents(v.expectedRentMxn),
-      currency: "MXN",
-      internalNotes: v.internalNotes ?? null,
-      cartoPredioId: v.cartoPredioId && v.cartoPredioId !== "" ? v.cartoPredioId : null,
-      cartoColoniaId: v.cartoColoniaId && v.cartoColoniaId !== "" ? v.cartoColoniaId : null,
-      status: "active",
-    },
+    const property = await tx.property.create({
+      data: {
+        portfolioId: defaultPortfolio.id,
+        name: v.name,
+        type: v.type,
+        operationalStatus: v.operationalStatus ?? "active",
+        address: v.address ?? null,
+        latitude: v.latitude != null ? v.latitude.toString() : null,
+        longitude: v.longitude != null ? v.longitude.toString() : null,
+        landAreaSqm: v.landAreaSqm != null ? v.landAreaSqm.toString() : null,
+        builtAreaSqm: v.builtAreaSqm != null ? v.builtAreaSqm.toString() : null,
+        fiscalValueCents: toBigIntCents(v.fiscalValueMxn),
+        commercialValueCents: toBigIntCents(v.commercialValueMxn),
+        insuranceValueCents: toBigIntCents(v.insuranceValueMxn),
+        expectedRentCents: toBigIntCents(v.expectedRentMxn),
+        currency: "MXN",
+        internalNotes: v.internalNotes ?? null,
+        cartoPredioId: v.cartoPredioId && v.cartoPredioId !== "" ? v.cartoPredioId : null,
+        cartoColoniaId: v.cartoColoniaId && v.cartoColoniaId !== "" ? v.cartoColoniaId : null,
+        status: "active",
+      },
+    });
+    return { propertyId: property.id } as const;
   });
 
+  if ("error" in result) return result;
   revalidatePath("/propiedades");
-  redirect(`/propiedades/${property.id}`);
+  redirect(`/propiedades/${result.propertyId}`);
 }
 
 export async function editarPropiedad(
@@ -162,39 +162,39 @@ export async function editarPropiedad(
   }
   const v = parsed.data;
 
-  const property = await db.property.findFirst({
-    where: {
-      id: propertyId,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-  });
-  if (!property) return { error: "Propiedad no encontrada" };
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const property = await tx.property.findFirst({
+      where: { id: propertyId, deletedAt: null },
+    });
+    if (!property) return { error: "Propiedad no encontrada" } as const;
 
-  await db.property.update({
-    where: { id: property.id },
-    data: {
-      name: v.name,
-      type: v.type,
-      operationalStatus: v.operationalStatus ?? property.operationalStatus,
-      address: v.address ?? null,
-      latitude: v.latitude != null ? v.latitude.toString() : null,
-      longitude: v.longitude != null ? v.longitude.toString() : null,
-      landAreaSqm: v.landAreaSqm != null ? v.landAreaSqm.toString() : null,
-      builtAreaSqm: v.builtAreaSqm != null ? v.builtAreaSqm.toString() : null,
-      fiscalValueCents: toBigIntCents(v.fiscalValueMxn),
-      commercialValueCents: toBigIntCents(v.commercialValueMxn),
-      insuranceValueCents: toBigIntCents(v.insuranceValueMxn),
-      expectedRentCents: toBigIntCents(v.expectedRentMxn),
-      internalNotes: v.internalNotes ?? null,
-      cartoPredioId: v.cartoPredioId && v.cartoPredioId !== "" ? v.cartoPredioId : null,
-      cartoColoniaId: v.cartoColoniaId && v.cartoColoniaId !== "" ? v.cartoColoniaId : null,
-    },
+    await tx.property.update({
+      where: { id: property.id },
+      data: {
+        name: v.name,
+        type: v.type,
+        operationalStatus: v.operationalStatus ?? property.operationalStatus,
+        address: v.address ?? null,
+        latitude: v.latitude != null ? v.latitude.toString() : null,
+        longitude: v.longitude != null ? v.longitude.toString() : null,
+        landAreaSqm: v.landAreaSqm != null ? v.landAreaSqm.toString() : null,
+        builtAreaSqm: v.builtAreaSqm != null ? v.builtAreaSqm.toString() : null,
+        fiscalValueCents: toBigIntCents(v.fiscalValueMxn),
+        commercialValueCents: toBigIntCents(v.commercialValueMxn),
+        insuranceValueCents: toBigIntCents(v.insuranceValueMxn),
+        expectedRentCents: toBigIntCents(v.expectedRentMxn),
+        internalNotes: v.internalNotes ?? null,
+        cartoPredioId: v.cartoPredioId && v.cartoPredioId !== "" ? v.cartoPredioId : null,
+        cartoColoniaId: v.cartoColoniaId && v.cartoColoniaId !== "" ? v.cartoColoniaId : null,
+      },
+    });
+    return { propertyId: property.id } as const;
   });
 
-  revalidatePath(`/propiedades/${property.id}`);
+  if ("error" in result) return result;
+  revalidatePath(`/propiedades/${result.propertyId}`);
   revalidatePath("/propiedades");
-  redirect(`/propiedades/${property.id}`);
+  redirect(`/propiedades/${result.propertyId}`);
 }
 
 /**
@@ -213,51 +213,48 @@ export async function vincularPropiedadConLote(
   if (!UUID_RE.test(propertyId) || !UUID_RE.test(predioId) || !UUID_RE.test(coloniaId)) {
     return { error: "IDs inválidos" };
   }
-  const property = await db.property.findFirst({
-    where: {
-      id: propertyId,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-  });
-  if (!property) return { error: "Propiedad no encontrada" };
 
-  await db.property.update({
-    where: { id: property.id },
-    data: {
-      cartoPredioId: predioId,
-      cartoColoniaId: coloniaId,
-      // Solo sobreescribir lat/lng si no tenía
-      latitude: property.latitude ?? lat.toString(),
-      longitude: property.longitude ?? lng.toString(),
-      // Si la propiedad no tenía superficie de terreno, usar la del catastro como referencia.
-      // El usuario puede sobreescribir después (#11).
-      landAreaSqm:
-        property.landAreaSqm ?? (area != null ? area.toString() : null),
-    },
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const property = await tx.property.findFirst({
+      where: { id: propertyId, deletedAt: null },
+    });
+    if (!property) return { error: "Propiedad no encontrada" } as const;
+
+    await tx.property.update({
+      where: { id: property.id },
+      data: {
+        cartoPredioId: predioId,
+        cartoColoniaId: coloniaId,
+        latitude: property.latitude ?? lat.toString(),
+        longitude: property.longitude ?? lng.toString(),
+        landAreaSqm:
+          property.landAreaSqm ?? (area != null ? area.toString() : null),
+      },
+    });
+    return { propertyId: property.id } as const;
   });
 
-  revalidatePath(`/propiedades/${property.id}`);
+  if ("error" in result) return result;
+  revalidatePath(`/propiedades/${result.propertyId}`);
   revalidatePath("/propiedades");
   return { ok: true };
 }
 
 export async function eliminarPropiedad(propertyId: string): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const property = await db.property.findFirst({
-    where: {
-      id: propertyId,
-      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
-      deletedAt: null,
-    },
-  });
-  if (!property) return { error: "Propiedad no encontrada" };
-
-  await db.property.update({
-    where: { id: property.id },
-    data: { status: "deleted", deletedAt: new Date() },
+  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const property = await tx.property.findFirst({
+      where: { id: propertyId, deletedAt: null },
+    });
+    if (!property) return { error: "Propiedad no encontrada" } as const;
+    await tx.property.update({
+      where: { id: property.id },
+      data: { status: "deleted", deletedAt: new Date() },
+    });
+    return { ok: true } as const;
   });
 
+  if ("error" in result) return result;
   revalidatePath("/propiedades");
   redirect("/propiedades");
 }

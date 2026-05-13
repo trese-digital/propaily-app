@@ -5,8 +5,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/server/db/client";
-import { requireUser } from "@/server/auth/require-user";
 import { parseBbox } from "@/server/cartografia/bbox";
+import { requireAddon } from "@/server/access/require-addon";
 
 type Row = {
   id: string;
@@ -25,8 +25,8 @@ type Row = {
 };
 
 export async function GET(request: NextRequest) {
-  const auth = await requireUser();
-  if (!auth.ok) return auth.response;
+  const gate = await requireAddon("cartografia");
+  if (!gate.ok) return gate.response;
 
   const { searchParams } = new URL(request.url);
   const parsed = parseBbox(searchParams.get("bbox"));

@@ -181,24 +181,48 @@ export const RailIcons = {
   ),
 };
 
-export const APP_RAIL_ITEMS: RailItem[] = [
-  { id: "home", label: "Inicio", icon: RailIcons.Home, href: "/" },
-  {
-    id: "propiedades",
-    label: "Propiedades",
-    icon: RailIcons.Properties,
-    href: "/propiedades",
-    matchPrefix: "/propiedades",
-  },
-  {
-    id: "cartografia",
-    label: "Cartografía",
-    icon: RailIcons.Map,
-    href: "/cartografia",
-    matchPrefix: "/cartografia",
-  },
-  { id: "insights", label: "Insights", icon: RailIcons.Insights, disabled: true },
-  { id: "calculadoras", label: "Calculadoras", icon: RailIcons.Calculator, disabled: true },
-];
+/**
+ * Construye los ítems del rail según los addons habilitados para la cuenta.
+ * Home y Propiedades son CORE — siempre presentes. Addons aparecen como
+ * disabled cuando la Subscription no los incluye, para que el cliente vea que
+ * existen y pueda pedir el upgrade. El gating real de acceso vive en el server
+ * (route handlers + page server components), no acá.
+ */
+export function buildRailItems(addons: {
+  cartografia: boolean;
+  insights: boolean;
+  calculadoras: boolean;
+}): RailItem[] {
+  return [
+    { id: "home", label: "Inicio", icon: RailIcons.Home, href: "/" },
+    {
+      id: "propiedades",
+      label: "Propiedades",
+      icon: RailIcons.Properties,
+      href: "/propiedades",
+      matchPrefix: "/propiedades",
+    },
+    {
+      id: "cartografia",
+      label: addons.cartografia ? "Cartografía" : "Cartografía · addon",
+      icon: RailIcons.Map,
+      href: addons.cartografia ? "/cartografia" : undefined,
+      matchPrefix: "/cartografia",
+      disabled: !addons.cartografia,
+    },
+    {
+      id: "insights",
+      label: addons.insights ? "Insights" : "Insights · addon",
+      icon: RailIcons.Insights,
+      disabled: !addons.insights,
+    },
+    {
+      id: "calculadoras",
+      label: addons.calculadoras ? "Calculadoras" : "Calculadoras · addon",
+      icon: RailIcons.Calculator,
+      disabled: !addons.calculadoras,
+    },
+  ];
+}
 
 export const APP_RAIL_WIDTH = 56;

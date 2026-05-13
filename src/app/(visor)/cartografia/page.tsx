@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
-import { ensureUserSynced } from "@/server/auth/sync-user";
+import { requireContext } from "@/server/auth/context";
+import { getEnabledAddons } from "@/server/access/has-addon";
 import Visor from "@/components/cartografia/Visor";
 
 export default async function CartografiaPage({
@@ -9,26 +9,21 @@ export default async function CartografiaPage({
 }: {
   searchParams: Promise<{ linkProperty?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const ctx = await requireContext();
+  const addons = await getEnabledAddons(ctx.membership.managementCompanyId);
 
-  const dbUser = await ensureUserSynced(
-    user.id,
-    user.email ?? "",
-    (user.user_metadata?.name as string | undefined) ?? null,
-  );
+  // Gating del addon (regla AGENTS.md §17). Sin addon → fuera del visor.
+  if (!addons.cartografia) redirect("/");
 
   const sp = await searchParams;
 
   return (
     <Visor
       user={{
-        email: dbUser.email,
-        name: dbUser.name ?? dbUser.email,
+        email: ctx.user.email,
+        name: ctx.user.name ?? ctx.user.email,
       }}
+      addons={addons}
       linkPropertyId={sp.linkProperty ?? null}
     />
   );

@@ -6,15 +6,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/server/db/client";
-import { requireUser } from "@/server/auth/require-user";
+import { requireAddon } from "@/server/access/require-addon";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Row = { id: string; area_m2: string | null; geom: unknown };
 
 export async function GET(request: NextRequest) {
-  const auth = await requireUser();
-  if (!auth.ok) return auth.response;
+  const gate = await requireAddon("cartografia");
+  if (!gate.ok) return gate.response;
 
   const { searchParams } = new URL(request.url);
   const cid = searchParams.get("colonia_id");

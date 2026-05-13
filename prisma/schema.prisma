@@ -65,6 +65,34 @@ model ManagementCompany {
   exchangeRates       ExchangeRate[]
   auditLogs           AuditLog[]
   notifications       Notification[]
+  subscription        Subscription?
+
+  @@schema("propaily")
+}
+
+/// Suscripción de una ManagementCompany. 1:1, opcional (sin row = sin acceso pago).
+/// MVP: no usa Stripe; GF activa/desactiva manualmente y los addons son booleans.
+/// Diseñado para migrar a Stripe sin reescribir: campo `source` y `externalId` reservados.
+model Subscription {
+  id                  String              @id @default(uuid())
+  managementCompanyId String              @unique
+  plan                SubscriptionPlan    @default(starter)
+  status              SubscriptionStatus  @default(active)
+  // Addons (toggles independientes del plan). Verificar SIEMPRE en server, nunca confiar en UI.
+  cartografiaEnabled  Boolean             @default(false)
+  insightsEnabled     Boolean             @default(false)
+  calculadorasEnabled Boolean             @default(false)
+  startDate           DateTime            @default(now())
+  endDate             DateTime?
+  source              String              @default("manual_gf")
+  externalId          String?
+  notes               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  managementCompany ManagementCompany @relation(fields: [managementCompanyId], references: [id], onDelete: Cascade)
+
+  @@index([status, endDate])
 
   @@schema("propaily")
 }
@@ -945,6 +973,25 @@ enum JobStatus {
   processing
   completed
   failed
+
+  @@schema("propaily")
+}
+
+enum SubscriptionPlan {
+  starter
+  growth
+  pro
+  enterprise
+  custom
+
+  @@schema("propaily")
+}
+
+enum SubscriptionStatus {
+  active
+  paused
+  past_due
+  cancelled
 
   @@schema("propaily")
 }

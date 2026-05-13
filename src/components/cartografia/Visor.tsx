@@ -8,7 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logout } from "@/app/(auth)/login/actions";
 import { vincularPropiedadConLote } from "@/server/properties/actions";
 
-import { AppRail, APP_RAIL_ITEMS, APP_RAIL_WIDTH } from "@/components/app-rail";
+import { AppRail, buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail";
+import type { AddonState } from "@/server/access/has-addon";
 import { Sidebar, type LayerCounts } from "./Sidebar";
 import { SearchBox } from "./SearchBox";
 import { Inspector } from "./Inspector";
@@ -31,11 +32,14 @@ const SIDEBAR_KEY = "gfc.v3.sidebar.collapsed";
 
 export default function Visor({
   user,
+  addons,
   linkPropertyId,
 }: {
   user: { email: string | null; name: string | null };
+  addons: AddonState;
   linkPropertyId?: string | null;
 }) {
+  const railItems = buildRailItems(addons);
   const router = useRouter();
   // ---------- Estado UI ----------
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -379,7 +383,7 @@ export default function Visor({
     <div className="h-screen w-screen grid bg-paper overflow-hidden" style={gridStyle}>
       {/* Rail (column 1, spans all rows) */}
       <div className="row-span-3" style={{ gridColumn: 1, gridRow: "1 / span 3" }}>
-        <AppRail items={APP_RAIL_ITEMS} activeId="cartografia" />
+        <AppRail items={railItems} activeId="cartografia" />
       </div>
 
       {/* Header (cols 2-4 row 1) */}

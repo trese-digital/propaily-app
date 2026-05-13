@@ -6,7 +6,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/server/db/client";
-import { requireUser } from "@/server/auth/require-user";
+import { requireAddon } from "@/server/access/require-addon";
 
 type Row = {
   rank: number;
@@ -20,8 +20,8 @@ type Row = {
 };
 
 export async function GET(request: NextRequest) {
-  const auth = await requireUser();
-  if (!auth.ok) return auth.response;
+  const gate = await requireAddon("cartografia");
+  if (!gate.ok) return gate.response;
 
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") ?? "").trim();
@@ -39,7 +39,12 @@ export async function GET(request: NextRequest) {
   const rows = await db.$queryRaw<Row[]>`
     WITH col AS (
         SELECT
-          CASE WHEN c.nombre ILIKE ${prefix} THEN 0 ELSE 1 END AS rank,
+          CASE
+            WHEN c.nombre ILIKE ${prefix} THEN 0
+            WHEN c.sector::text = ${q} THEN 0
+            WHEN c.sector::text ILIKE ${like} THEN 1
+            ELSE 1
+          END AS rank,
           'colonia'::text          AS type,
           c.id::text               AS id,
           c.nombre                 AS label,
@@ -49,6 +54,7 @@ export async function GET(request: NextRequest) {
           public.ST_AsGeoJSON(public.ST_Envelope(c.geom))::text AS bbox_geom
         FROM public.colonias c
         WHERE c.nombre ILIKE ${like}
+           OR c.sector::text ILIKE ${like}
         LIMIT ${limit}
     ),
     tr AS (

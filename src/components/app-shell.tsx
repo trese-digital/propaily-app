@@ -2,17 +2,21 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { logout } from "@/app/(auth)/login/actions";
-import { AppRail, APP_RAIL_ITEMS, APP_RAIL_WIDTH } from "@/components/app-rail";
+import { AppRail, buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail";
+import type { AddonState } from "@/server/access/has-addon";
 
 export function AppShell({
   user,
   org,
+  addons,
   children,
 }: {
   user: { name: string | null; email: string };
   org: string;
+  addons: AddonState;
   children: ReactNode;
 }) {
+  const railItems = buildRailItems(addons);
   const initials = (user.name ?? user.email)
     .split(/\s+|@/)
     .filter(Boolean)
@@ -29,7 +33,7 @@ export function AppShell({
         className="z-20 shrink-0 self-start sticky top-0 h-screen"
         style={{ width: APP_RAIL_WIDTH, flexBasis: APP_RAIL_WIDTH }}
       >
-        <AppRail items={APP_RAIL_ITEMS} />
+        <AppRail items={railItems} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

@@ -1,0 +1,2 @@
+# Scripts shell siempre con LF — el VPS es Linux y los CRLF rompen el shebang.
+*.sh text eol=lf

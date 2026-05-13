@@ -1,0 +1,23 @@
+# Reduce el build context — Docker copia esto SOLO si lo pides explícito.
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+.env.development
+.env.*.local
+*.log
+.DS_Store
+.vscode
+.idea
+README.md
+ESTADO-SESION.md
+CHANGELOG.md
+docs
+tsconfig.tsbuildinfo
+coverage
+.turbo
+.husky
+.pnpm-store
+prisma/migrations.lock

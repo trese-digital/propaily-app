@@ -1,0 +1,21 @@
+-- CreateTable
+CREATE TABLE "PropertyPhoto" (
+    "id" TEXT NOT NULL,
+    "propertyId" TEXT NOT NULL,
+    "storageKey" TEXT NOT NULL,
+    "caption" TEXT,
+    "displayOrder" INTEGER NOT NULL DEFAULT 0,
+    "width" INTEGER,
+    "height" INTEGER,
+    "sizeBytes" INTEGER,
+    "contentType" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PropertyPhoto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "PropertyPhoto_propertyId_displayOrder_idx" ON "PropertyPhoto"("propertyId", "displayOrder");
+
+-- AddForeignKey
+ALTER TABLE "PropertyPhoto" ADD CONSTRAINT "PropertyPhoto_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property"("id") ON DELETE CASCADE ON UPDATE CASCADE;

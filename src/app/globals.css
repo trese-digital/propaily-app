@@ -1,0 +1,240 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* ============================================================
+   Propaily Design Tokens — v1
+   Fuente: cartografia-gfc/propaily-handoff/tokens.css
+   Geist + Geist Mono se cargan vía next/font en layout.tsx
+   y se exponen como --font-geist / --font-geist-mono.
+   ============================================================ */
+@theme {
+  /* Brand purple — rampa */
+  --color-pp-50: #f4f0ff;
+  --color-pp-100: #e8dfff;
+  --color-pp-200: #d1bfff;
+  --color-pp-300: #b197ff;
+  --color-pp-400: #8e66ff;
+  --color-pp-500: #6e3aff;
+  --color-pp-600: #5a24e6;
+  --color-pp-700: #4818b8;
+  --color-pp-800: #2f0e80;
+  --color-pp-900: #1b0853;
+  --color-pp-950: #0e0430;
+
+  /* Ink — neutros con tinte morado */
+  --color-ink-0: #ffffff;
+  --color-ink-25: #fbfafe;
+  --color-ink-50: #f6f4fb;
+  --color-ink-100: #eeeaf6;
+  --color-ink-200: #e1dcee;
+  --color-ink-300: #c6bfd7;
+  --color-ink-400: #9890ac;
+  --color-ink-500: #6b6480;
+  --color-ink-600: #494258;
+  --color-ink-700: #2d2738;
+  --color-ink-800: #1a1524;
+  --color-ink-900: #0e0a16;
+
+  /* Semánticos */
+  --color-ok: #10b981;
+  --color-warn: #f59e0b;
+  --color-bad: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Fuentes — Geist via next/font (fallback system) */
+  --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Radios */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* ── Alias legacy → tokens nuevos ──────────────
+     Mantienen vivas las clases Tailwind que aún usan
+     componentes no refactorizados (cover, gallery, etc.).
+     Se eliminarán cuando todo migre a tokens directos. */
+  --color-navy: var(--color-ink-900);
+  --color-navy-2: var(--color-ink-800);
+  --color-navy-3: var(--color-ink-700);
+  --color-teal: var(--color-pp-500);
+  --color-teal-bright: var(--color-pp-400);
+  --color-teal-deep: var(--color-pp-700);
+  --color-magenta: var(--color-bad);
+  --color-violet: var(--color-pp-500);
+  --color-lime: var(--color-pp-300);
+  --color-paper: var(--color-ink-0);
+  --color-paper-2: var(--color-ink-50);
+  --color-slate: var(--color-ink-500);
+  --color-slate-2: var(--color-ink-400);
+
+  /* Aliases de fuente legacy */
+  --font-display: var(--font-sans);
+}
+
+/* ── Roles semánticos (componentes consumen estos, NO las rampas) ── */
+:root {
+  --bg: var(--color-ink-0);
+  --bg-muted: var(--color-ink-25);
+  --bg-subtle: var(--color-ink-50);
+  --border: var(--color-ink-200);
+  --border-strong: var(--color-ink-300);
+  --fg: var(--color-ink-900);
+  --fg-muted: var(--color-ink-500);
+  --fg-subtle: var(--color-ink-400);
+  --accent: var(--color-pp-500);
+  --accent-soft: var(--color-pp-50);
+  --accent-hover: var(--color-pp-600);
+
+  /* Sombras con tinte morado */
+  --shadow-xs: 0 1px 2px rgba(27, 8, 83, 0.04);
+  --shadow-sm: 0 1px 3px rgba(27, 8, 83, 0.06), 0 1px 2px rgba(27, 8, 83, 0.04);
+  --shadow-md: 0 4px 16px rgba(27, 8, 83, 0.08), 0 2px 4px rgba(27, 8, 83, 0.04);
+  --shadow-lg: 0 12px 32px rgba(27, 8, 83, 0.10), 0 4px 8px rgba(27, 8, 83, 0.05);
+  --shadow-glow: 0 0 0 4px rgba(110, 58, 255, 0.15);
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 400ms;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0820;
+  --bg-muted: #100b28;
+  --bg-subtle: #13102e;
+  --border: rgba(142, 102, 255, 0.18);
+  --border-strong: rgba(142, 102, 255, 0.32);
+  --fg: #e9e5ff;
+  --fg-muted: rgba(233, 229, 255, 0.65);
+  --fg-subtle: rgba(233, 229, 255, 0.45);
+  --accent: var(--color-pp-400);
+  --accent-soft: rgba(142, 102, 255, 0.12);
+  --accent-hover: var(--color-pp-300);
+}
+
+/* ── Reset base ────────────────────────────── */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+* {
+  box-sizing: border-box;
+}
+
+/* ── Utilidades de marca ───────────────────── */
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.mono-tight {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: 500;
+}
+
+/* Endoso "by GF Consultoría" */
+.endoso {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+/* Watermark para exports / overlays sensibles */
+.watermark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    -10deg,
+    transparent 0,
+    transparent 78px,
+    rgba(27, 8, 83, 0.06) 78px,
+    rgba(27, 8, 83, 0.06) 80px
+  );
+}
+
+/* ── Leaflet tooltip con identidad Propaily ── */
+.leaflet-tooltip.pp-tt {
+  background: var(--color-ink-900);
+  color: #fff;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  letter-spacing: 0.04em;
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-sm);
+}
+.leaflet-tooltip.pp-tt::before {
+  display: none;
+}
+
+.leaflet-container {
+  background: var(--bg-subtle);
+  font-family: var(--font-sans);
+}
+
+/* Compatibilidad temporal — clases gfc-* del visor legacy */
+.gfc-bar {
+  background: linear-gradient(
+    90deg,
+    var(--color-pp-700) 0%,
+    var(--color-pp-500) 50%,
+    var(--color-pp-300) 100%
+  );
+}
+.gfc-text-grad {
+  background: linear-gradient(
+    90deg,
+    var(--color-pp-700) 0%,
+    var(--color-pp-500) 50%,
+    var(--color-pp-300) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.leaflet-tooltip.gfc-tt {
+  background: var(--color-ink-900);
+  color: #fff;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm);
+}
+.leaflet-tooltip.gfc-tt::before {
+  display: none;
+}
+
+/* ── Focus ring accesible ──────────────────── */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-glow);
+  border-radius: var(--radius-sm);
+}

@@ -1,0 +1,950 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["propaily"]
+}
+
+model User {
+  id          String     @id @default(uuid())
+  email       String     @unique
+  name        String?
+  phone       String?
+  authMethods AuthMethod[]
+  status      UserStatus @default(active)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  memberships        Membership[]
+  permissionGrants   PermissionGrant[]
+  comments           Comment[]
+  assignedTasks      Task[]              @relation("TaskAssignee")
+  createdTasks       Task[]              @relation("TaskCreator")
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  changeHistoryItems ChangeHistory[]
+
+  @@schema("propaily")
+}
+
+model Platform {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  managementCompanies ManagementCompany[]
+
+  @@schema("propaily")
+}
+
+model ManagementCompany {
+  id          String       @id @default(uuid())
+  platformId  String
+  name        String
+  legalName   String?
+  logoUrl     String?
+  primaryColor String?
+  accentColor  String?
+  reportFooter String?
+  status      EntityStatus @default(active)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  platform            Platform             @relation(fields: [platformId], references: [id], onDelete: Restrict)
+  memberships         Membership[]
+  clients             Client[]
+  permissionTemplates PermissionTemplate[]
+  vendors             Vendor[]
+  exchangeRates       ExchangeRate[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+
+  @@schema("propaily")
+}
+
+model Membership {
+  id                  String     @id @default(uuid())
+  userId              String
+  managementCompanyId String
+  role                Role
+  status              UserStatus @default(active)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managementCompany ManagementCompany @relation(fields: [managementCompanyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, managementCompanyId])
+  @@index([managementCompanyId, role])
+
+  @@schema("propaily")
+}
+
+model Client {
+  id                  String       @id @default(uuid())
+  managementCompanyId String
+  name                String
+  type                ClientType
+  primaryEmail        String?
+  phone               String?
+  taxId               String?
+  fiscalAddress       String?
+  administrativeContact String?
+  legalContact        String?
+  internalNotes       String?
+  status              EntityStatus @default(active)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  deletedAt           DateTime?
+
+  managementCompany ManagementCompany @relation(fields: [managementCompanyId], references: [id], onDelete: Restrict)
+  portfolios        Portfolio[]
+  documents         Document[]
+  tasks             Task[]
+  comments          Comment[]
+
+  @@index([managementCompanyId, status])
+
+  @@schema("propaily")
+}
+
+model Portfolio {
+  id          String       @id @default(uuid())
+  clientId    String
+  name        String
+  description String?
+  status      EntityStatus @default(active)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  properties  Property[]
+  ownerships  Ownership[]
+  documents   Document[]
+  tasks       Task[]
+  comments    Comment[]
+
+  @@index([clientId, status])
+
+  @@schema("propaily")
+}
+
+model Property {
+  id                    String          @id @default(uuid())
+  portfolioId           String
+  name                  String
+  type                  PropertyType
+  operationalStatus     OperationalStatus @default(active)
+  legalStatus           String?
+  address               String?
+  city                  String?
+  state                 String?
+  country               String?
+  latitude              Decimal?        @db.Decimal(10, 7)
+  longitude             Decimal?        @db.Decimal(10, 7)
+  landAreaSqm           Decimal?        @db.Decimal(14, 2)
+  builtAreaSqm          Decimal?        @db.Decimal(14, 2)
+  purchasePriceCents    BigInt?
+  purchaseDate          DateTime?
+  currentValueCents     BigInt?
+  fiscalValueCents      BigInt?
+  commercialValueCents  BigInt?
+  insuranceValueCents   BigInt?
+  expectedRentCents     BigInt?
+  monthlyExpensesCents  BigInt?
+  currency              Currency        @default(MXN)
+  internalNotes         String?
+  // Vínculo opcional con el catastro (schema "public" — cartografía).
+  // Guardamos los UUIDs sin FK declarada para que Prisma no intente
+  // crearle constraint a otro schema.
+  cartoPredioId         String?         @db.Uuid
+  cartoColoniaId        String?         @db.Uuid
+  // Foto de portada (Supabase Storage key)
+  coverPhotoStorageKey  String?
+  status                EntityStatus    @default(active)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  deletedAt             DateTime?
+
+  portfolio            Portfolio            @relation(fields: [portfolioId], references: [id], onDelete: Restrict)
+  units                Unit[]
+  ownerships           Ownership[]
+  documents            Document[]
+  photos               PropertyPhoto[]
+  valuations           Valuation[]
+  valuationRequests    ValuationRequest[]
+  leases               Lease[]
+  maintenanceRequests  MaintenanceRequest[]
+  tasks                Task[]
+  comments             Comment[]
+
+  @@index([portfolioId, status])
+  @@index([type, operationalStatus])
+  @@index([cartoPredioId])
+
+  @@schema("propaily")
+}
+
+model PropertyPhoto {
+  id           String   @id @default(uuid())
+  propertyId   String
+  storageKey   String
+  caption      String?
+  displayOrder Int      @default(0)
+  width        Int?
+  height       Int?
+  sizeBytes    Int?
+  contentType  String?
+  createdAt    DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, displayOrder])
+  @@schema("propaily")
+}
+
+model Unit {
+  id                  String            @id @default(uuid())
+  propertyId          String
+  name                String
+  type                UnitType
+  areaSqm             Decimal?          @db.Decimal(14, 2)
+  operationalStatus   OperationalStatus @default(active)
+  monthlyRentCents    BigInt?
+  currency            Currency          @default(MXN)
+  currentTenantName   String?
+  leaseStartDate      DateTime?
+  leaseEndDate        DateTime?
+  paymentDay          Int?
+  internalNotes       String?
+  status              EntityStatus      @default(active)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  property            Property             @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  documents           Document[]
+  leases              Lease[]
+  maintenanceRequests MaintenanceRequest[]
+  tasks               Task[]
+  comments            Comment[]
+
+  @@index([propertyId, status])
+
+  @@schema("propaily")
+}
+
+model Ownership {
+  id          String   @id @default(uuid())
+  portfolioId String?
+  propertyId  String?
+  clientId    String?
+  holderName  String
+  holderType  ClientType?
+  percentage  Decimal  @db.Decimal(7, 4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  portfolio Portfolio? @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  property  Property?  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([portfolioId])
+  @@index([propertyId])
+
+  @@schema("propaily")
+}
+
+model Document {
+  id              String             @id @default(uuid())
+  clientId        String?
+  portfolioId     String?
+  propertyId      String?
+  unitId          String?
+  leaseId         String?
+  rentPaymentId   String?
+  maintenanceRequestId String?
+  taskId          String?
+  name            String
+  category        DocumentCategory
+  sensitivity     DocumentSensitivity @default(normal)
+  approvalStatus  ApprovalStatus      @default(not_required)
+  expiresAt       DateTime?
+  currentVersionId String?
+  status          EntityStatus        @default(active)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deletedAt       DateTime?
+
+  client             Client?             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  portfolio          Portfolio?          @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  property           Property?           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit               Unit?               @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  lease              Lease?              @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  rentPayment        RentPayment?        @relation(fields: [rentPaymentId], references: [id], onDelete: Cascade)
+  maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+  task               Task?               @relation("TaskDocuments", fields: [taskId], references: [id], onDelete: Cascade)
+  relatedTasks       Task[]              @relation("TaskRelatedDocument")
+  versions           DocumentVersion[]
+  approvals          DocumentApproval[]
+  comments           Comment[]
+
+  @@index([category, sensitivity])
+  @@index([expiresAt])
+
+  @@schema("propaily")
+}
+
+model DocumentVersion {
+  id          String   @id @default(uuid())
+  documentId  String
+  version     Int
+  storageKey  String
+  fileName    String
+  contentType String
+  sizeBytes   Int
+  checksum    String?
+  uploadedById String?
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+
+  @@schema("propaily")
+}
+
+model DocumentApproval {
+  id          String         @id @default(uuid())
+  documentId  String
+  status      ApprovalStatus
+  reviewerId  String?
+  notes       String?
+  createdAt   DateTime       @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@schema("propaily")
+}
+
+model Valuation {
+  id             String          @id @default(uuid())
+  propertyId     String
+  type           ValuationType
+  valueCents     BigInt
+  currency       Currency        @default(MXN)
+  valuationDate  DateTime
+  source         String?
+  notes          String?
+  isOfficial     Boolean         @default(false)
+  approvalStatus ApprovalStatus  @default(not_required)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@schema("propaily")
+}
+
+model ValuationRequest {
+  id          String        @id @default(uuid())
+  propertyId  String
+  requesterId String?
+  status      RequestStatus @default(pending)
+  notes       String?
+  response    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  completedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@schema("propaily")
+}
+
+model Lease {
+  id                  String       @id @default(uuid())
+  propertyId           String?
+  unitId               String?
+  tenantUserId         String?
+  tenantName           String
+  tenantEmail          String?
+  monthlyRentCents     BigInt
+  currency             Currency     @default(MXN)
+  paymentDay           Int
+  startDate            DateTime
+  endDate              DateTime
+  securityDepositCents BigInt?
+  status               LeaseStatus  @default(active)
+  notes                String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  deletedAt            DateTime?
+
+  property     Property?     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit         Unit?         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  rentPayments RentPayment[]
+  documents    Document[]
+
+  @@schema("propaily")
+}
+
+model RentPayment {
+  id          String        @id @default(uuid())
+  leaseId     String
+  amountCents BigInt
+  currency    Currency      @default(MXN)
+  periodMonth Int
+  periodYear  Int
+  dueDate     DateTime
+  paidAt      DateTime?
+  status      PaymentStatus @default(pending)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  lease     Lease      @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@index([leaseId, periodYear, periodMonth])
+  @@index([status, dueDate])
+
+  @@schema("propaily")
+}
+
+model MaintenanceRequest {
+  id              String            @id @default(uuid())
+  propertyId      String?
+  unitId          String?
+  requesterId     String?
+  vendorId        String?
+  title           String
+  description     String
+  category        MaintenanceCategory
+  priority        Priority          @default(medium)
+  status          MaintenanceStatus @default(new)
+  estimatedCostCents BigInt?
+  actualCostCents    BigInt?
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+
+  property  Property?  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit      Unit?      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  vendor    Vendor?    @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  documents Document[]
+  comments  Comment[]
+
+  @@schema("propaily")
+}
+
+model Vendor {
+  id                  String       @id @default(uuid())
+  managementCompanyId String
+  name                String
+  serviceType         String
+  contactName         String?
+  phone               String?
+  email               String?
+  notes               String?
+  status              EntityStatus @default(active)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  deletedAt           DateTime?
+
+  managementCompany  ManagementCompany    @relation(fields: [managementCompanyId], references: [id], onDelete: Restrict)
+  maintenanceRequests MaintenanceRequest[]
+
+  @@schema("propaily")
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  clientId    String?
+  portfolioId String?
+  propertyId  String?
+  unitId      String?
+  documentId  String?
+  title       String
+  description String?
+  priority    Priority     @default(medium)
+  status      TaskStatus   @default(pending)
+  assigneeId  String?
+  creatorId   String?
+  dueAt       DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  client    Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  portfolio Portfolio? @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  property  Property?  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit      Unit?      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  document  Document?  @relation("TaskRelatedDocument", fields: [documentId], references: [id], onDelete: Cascade)
+  assignee  User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  creator   User?      @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  comments  Comment[]
+  documents Document[] @relation("TaskDocuments")
+
+  @@index([status, dueAt])
+
+  @@schema("propaily")
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  authorId    String
+  clientId    String?
+  portfolioId String?
+  propertyId  String?
+  unitId      String?
+  documentId  String?
+  taskId      String?
+  maintenanceRequestId String?
+  body        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  author             User                @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  client             Client?             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  portfolio          Portfolio?          @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  property           Property?           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit               Unit?               @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  document           Document?           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  task               Task?               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+
+  @@schema("propaily")
+}
+
+model PermissionTemplate {
+  id                  String   @id @default(uuid())
+  managementCompanyId String?
+  name                String
+  description         String?
+  permissions         Json
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  managementCompany ManagementCompany? @relation(fields: [managementCompanyId], references: [id], onDelete: Cascade)
+
+  @@schema("propaily")
+}
+
+model PermissionGrant {
+  id         String          @id @default(uuid())
+  userId     String
+  permission String
+  effect     PermissionEffect @default(allow)
+  scopeType  PermissionScopeType
+  scopeId    String?
+  fieldKey   String?
+  createdAt  DateTime        @default(now())
+  expiresAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, scopeType, scopeId])
+
+  @@schema("propaily")
+}
+
+model Notification {
+  id                  String             @id @default(uuid())
+  managementCompanyId String?
+  userId              String
+  type                NotificationType
+  channel             NotificationChannel
+  title               String
+  body                String
+  readAt              DateTime?
+  sentAt              DateTime?
+  createdAt           DateTime           @default(now())
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managementCompany ManagementCompany? @relation(fields: [managementCompanyId], references: [id], onDelete: Cascade)
+
+  @@schema("propaily")
+}
+
+model AuditLog {
+  id                  String   @id @default(uuid())
+  managementCompanyId String?
+  actorId             String?
+  action              String
+  entityType          String
+  entityId            String?
+  metadata            Json?
+  ipAddress           String?
+  userAgent           String?
+  createdAt           DateTime @default(now())
+
+  actor             User?              @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  managementCompany ManagementCompany? @relation(fields: [managementCompanyId], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+
+  @@schema("propaily")
+}
+
+model ChangeHistory {
+  id          String   @id @default(uuid())
+  actorId     String?
+  entityType  String
+  entityId    String
+  fieldKey    String?
+  oldValue    Json?
+  newValue    Json?
+  summary     String
+  createdAt   DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+
+  @@schema("propaily")
+}
+
+model ExchangeRate {
+  id                  String   @id @default(uuid())
+  managementCompanyId String
+  baseCurrency        Currency
+  quoteCurrency       Currency
+  rate                Decimal  @db.Decimal(18, 8)
+  effectiveDate       DateTime
+  source              String   @default("manual")
+  createdAt           DateTime @default(now())
+
+  managementCompany ManagementCompany @relation(fields: [managementCompanyId], references: [id], onDelete: Cascade)
+
+  @@unique([managementCompanyId, baseCurrency, quoteCurrency, effectiveDate])
+
+  @@schema("propaily")
+}
+
+model ImportJob {
+  id                  String        @id @default(uuid())
+  managementCompanyId String
+  type                ImportJobType
+  status              JobStatus     @default(pending)
+  fileName            String
+  summary             Json?
+  createdAt           DateTime      @default(now())
+  completedAt         DateTime?
+
+  @@schema("propaily")
+}
+
+model ExportJob {
+  id                  String        @id @default(uuid())
+  managementCompanyId String
+  type                ExportJobType
+  status              JobStatus     @default(pending)
+  includesSensitive   Boolean       @default(false)
+  storageKey          String?
+  summary             Json?
+  createdAt           DateTime      @default(now())
+  completedAt         DateTime?
+
+  @@schema("propaily")
+}
+
+enum AuthMethod {
+  password
+  google
+  microsoft
+
+  @@schema("propaily")
+}
+
+enum UserStatus {
+  invited
+  active
+  suspended
+  inactive
+
+  @@schema("propaily")
+}
+
+enum Role {
+  super_admin
+  company_admin
+  company_operator
+  owner
+  guest
+  tenant
+  vendor
+
+  @@schema("propaily")
+}
+
+enum EntityStatus {
+  draft
+  active
+  under_review
+  archived
+  inactive
+  deleted
+
+  @@schema("propaily")
+}
+
+enum ClientType {
+  individual
+  company
+  trust
+  family
+  other
+
+  @@schema("propaily")
+}
+
+enum PropertyType {
+  house
+  apartment
+  land
+  commercial_space
+  office
+  warehouse
+  industrial
+  other
+
+  @@schema("propaily")
+}
+
+enum UnitType {
+  apartment
+  commercial_space
+  office
+  warehouse
+  room
+  other
+
+  @@schema("propaily")
+}
+
+enum OperationalStatus {
+  active
+  available
+  rented
+  for_sale
+  under_construction
+  maintenance
+  reserved
+  inactive
+
+  @@schema("propaily")
+}
+
+enum Currency {
+  MXN
+  USD
+
+  @@schema("propaily")
+}
+
+enum DocumentCategory {
+  deed
+  purchase_contract
+  lease_contract
+  commercial_valuation
+  fiscal_valuation
+  identification
+  power_of_attorney
+  bank_statement
+  tax
+  insurance
+  floor_plan
+  maintenance
+  payment_proof
+  legal
+  other
+
+  @@schema("propaily")
+}
+
+enum DocumentSensitivity {
+  normal
+  sensitive
+
+  @@schema("propaily")
+}
+
+enum ApprovalStatus {
+  not_required
+  pending
+  approved
+  rejected
+
+  @@schema("propaily")
+}
+
+enum ValuationType {
+  manual
+  commercial
+  fiscal
+  insurance
+  professional
+
+  @@schema("propaily")
+}
+
+enum RequestStatus {
+  pending
+  in_progress
+  completed
+  cancelled
+
+  @@schema("propaily")
+}
+
+enum LeaseStatus {
+  draft
+  active
+  expired
+  renewed
+  cancelled
+
+  @@schema("propaily")
+}
+
+enum PaymentStatus {
+  pending
+  proof_uploaded
+  confirmed
+  overdue
+  cancelled
+
+  @@schema("propaily")
+}
+
+enum MaintenanceCategory {
+  plumbing
+  electrical
+  painting
+  carpentry
+  cleaning
+  gardening
+  structural
+  other
+
+  @@schema("propaily")
+}
+
+enum MaintenanceStatus {
+  new
+  under_review
+  assigned
+  in_progress
+  completed
+  cancelled
+
+  @@schema("propaily")
+}
+
+enum Priority {
+  low
+  medium
+  high
+  urgent
+
+  @@schema("propaily")
+}
+
+enum TaskStatus {
+  pending
+  in_progress
+  blocked
+  completed
+  cancelled
+
+  @@schema("propaily")
+}
+
+enum PermissionEffect {
+  allow
+  deny
+
+  @@schema("propaily")
+}
+
+enum PermissionScopeType {
+  platform
+  management_company
+  client
+  portfolio
+  property
+  unit
+  document
+
+  @@schema("propaily")
+}
+
+enum NotificationType {
+  document_expiring
+  lease_expiring
+  task_assigned
+  invitation
+  valuation_request_updated
+  document_approval_updated
+  rent_payment_updated
+  maintenance_updated
+
+  @@schema("propaily")
+}
+
+enum NotificationChannel {
+  in_app
+  email
+
+  @@schema("propaily")
+}
+
+enum ImportJobType {
+  clients
+  portfolios
+  properties
+  units
+  rent_payments
+  document_metadata
+
+  @@schema("propaily")
+}
+
+enum ExportJobType {
+  report_pdf
+  report_csv
+  clients
+  portfolios
+  properties
+  units
+  documents
+  rent_payments
+  audit
+
+  @@schema("propaily")
+}
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+
+  @@schema("propaily")
+}

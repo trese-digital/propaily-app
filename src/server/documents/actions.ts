@@ -1,0 +1,216 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+import { db } from "@/server/db/client";
+import { requireContext } from "@/server/auth/context";
+import { createAdminClient } from "@/lib/supabase/server";
+
+const BUCKET = "propaily-documents";
+
+const DOC_CATEGORIES = [
+  "deed",
+  "purchase_contract",
+  "lease_contract",
+  "commercial_valuation",
+  "fiscal_valuation",
+  "identification",
+  "power_of_attorney",
+  "bank_statement",
+  "tax",
+  "insurance",
+  "floor_plan",
+  "maintenance",
+  "payment_proof",
+  "legal",
+  "other",
+] as const;
+
+const UploadSchema = z.object({
+  name: z.string().trim().min(1),
+  category: z.enum(DOC_CATEGORIES),
+  sensitivity: z.enum(["normal", "sensitive"]).default("normal"),
+  propertyId: z.string().uuid(),
+});
+
+export type UploadDocumentState = { error?: string; ok?: boolean; ts?: number };
+
+function sanitizeFilename(name: string) {
+  return name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
+}
+
+export async function uploadDocument(
+  _prev: UploadDocumentState,
+  formData: FormData,
+): Promise<UploadDocumentState> {
+  const ctx = await requireContext();
+
+  const parsed = UploadSchema.safeParse({
+    name: formData.get("name"),
+    category: formData.get("category"),
+    sensitivity: formData.get("sensitivity") || "normal",
+    propertyId: formData.get("propertyId"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  const v = parsed.data;
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Selecciona un archivo" };
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    return { error: "El archivo excede 25 MB" };
+  }
+
+  // Validar que la propiedad pertenece a la org del usuario.
+  const property = await db.property.findFirst({
+    where: {
+      id: v.propertyId,
+      portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } },
+      deletedAt: null,
+    },
+  });
+  if (!property) return { error: "Propiedad no encontrada" };
+
+  // Crear Document + DocumentVersion en transacción.
+  const sb = createAdminClient();
+  const filename = sanitizeFilename(file.name);
+
+  try {
+    const doc = await db.$transaction(async (tx) => {
+      const d = await tx.document.create({
+        data: {
+          propertyId: property.id,
+          name: v.name,
+          category: v.category,
+          sensitivity: v.sensitivity,
+          approvalStatus: "not_required",
+          status: "active",
+        },
+      });
+      const version = 1;
+      const storageKey = `${ctx.membership.managementCompanyId}/property/${property.id}/${d.id}/v${version}-${filename}`;
+
+      // Upload a Supabase
+      const buf = Buffer.from(await file.arrayBuffer());
+      const up = await sb.storage.from(BUCKET).upload(storageKey, buf, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      });
+      if (up.error) throw new Error(up.error.message);
+
+      const dv = await tx.documentVersion.create({
+        data: {
+          documentId: d.id,
+          version,
+          storageKey,
+          fileName: filename,
+          contentType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+          uploadedById: ctx.user.id,
+        },
+      });
+
+      await tx.document.update({
+        where: { id: d.id },
+        data: { currentVersionId: dv.id },
+      });
+
+      return d;
+    });
+
+    revalidatePath(`/propiedades/${property.id}`);
+    return { ok: true, ts: Date.now() };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Error al subir" };
+  }
+}
+
+export async function getDocumentSignedUrl(documentId: string): Promise<{ url?: string; error?: string }> {
+  const ctx = await requireContext();
+  const d = await db.document.findFirst({
+    where: {
+      id: documentId,
+      OR: [
+        { property: { portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } } } },
+      ],
+      status: { not: "deleted" },
+    },
+    include: { versions: { orderBy: { version: "desc" }, take: 1 } },
+  });
+  if (!d || !d.versions[0]) return { error: "Documento no encontrado" };
+
+  const sb = createAdminClient();
+  const signed = await sb.storage.from(BUCKET).createSignedUrl(d.versions[0].storageKey, 60);
+  if (signed.error) return { error: signed.error.message };
+  return { url: signed.data.signedUrl };
+}
+
+const EditSchema = z.object({
+  name: z.string().trim().min(1, "Nombre requerido"),
+  category: z.enum(DOC_CATEGORIES),
+  sensitivity: z.enum(["normal", "sensitive"]),
+});
+
+export type EditDocumentState = { error?: string; ok?: boolean; ts?: number };
+
+export async function editDocument(
+  documentId: string,
+  _prev: EditDocumentState,
+  formData: FormData,
+): Promise<EditDocumentState> {
+  const ctx = await requireContext();
+  const parsed = EditSchema.safeParse({
+    name: formData.get("name"),
+    category: formData.get("category"),
+    sensitivity: formData.get("sensitivity") || "normal",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+
+  const d = await db.document.findFirst({
+    where: {
+      id: documentId,
+      property: { portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } } },
+      status: { not: "deleted" },
+    },
+    select: { id: true, propertyId: true },
+  });
+  if (!d) return { error: "Documento no encontrado" };
+
+  await db.document.update({
+    where: { id: d.id },
+    data: {
+      name: parsed.data.name,
+      category: parsed.data.category,
+      sensitivity: parsed.data.sensitivity,
+    },
+  });
+
+  if (d.propertyId) revalidatePath(`/propiedades/${d.propertyId}`);
+  return { ok: true, ts: Date.now() };
+}
+
+export async function deleteDocument(documentId: string): Promise<{ ok?: boolean; error?: string }> {
+  const ctx = await requireContext();
+  const d = await db.document.findFirst({
+    where: {
+      id: documentId,
+      property: { portfolio: { client: { managementCompanyId: ctx.membership.managementCompanyId } } },
+      status: { not: "deleted" },
+    },
+    select: { id: true, propertyId: true },
+  });
+  if (!d) return { error: "Documento no encontrado" };
+
+  // Soft delete (los archivos quedan en storage para auditoría).
+  await db.document.update({
+    where: { id: d.id },
+    data: { status: "deleted", deletedAt: new Date() },
+  });
+
+  if (d.propertyId) revalidatePath(`/propiedades/${d.propertyId}`);
+  return { ok: true };
+}

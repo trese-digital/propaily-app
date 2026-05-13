@@ -1,6 +1,14 @@
 /**
  * Middleware helper: refresca la sesión de Supabase en cada request y
  * redirige a /login si la ruta requiere auth.
+ *
+ * Path-aware: `/admin/*` requiere sesión Y rol GF staff. La validación
+ * de staff en sí vive en `src/app/admin/layout.tsx` (es Server Component
+ * y tiene acceso a Prisma). Acá sólo evitamos que un usuario sin sesión
+ * vea HTML cacheado.
+ *
+ * Cuando DNS de admin.propaily.com apunte, basta con agregar rama por
+ * `request.headers.get('host')` antes del check de path.
  */
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
@@ -12,6 +20,10 @@ function isPublic(pathname: string) {
   // Assets de Next y favicon
   if (pathname.startsWith("/_next/") || pathname === "/favicon.ico") return true;
   return false;
+}
+
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
 export async function updateSession(request: NextRequest) {
@@ -64,7 +76,8 @@ export async function updateSession(request: NextRequest) {
   }
   if (user && (pathname === "/login" || pathname === "/signup")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    // Si venían intentando entrar a /admin, los regresamos a /admin.
+    url.pathname = isAdminPath(request.nextUrl.searchParams.get("from") ?? "/") ? "/admin" : "/";
     return NextResponse.redirect(url);
   }
 

@@ -21,3 +21,4 @@ coverage
 .husky
 .pnpm-store
 prisma/migrations.lock
+.workspace

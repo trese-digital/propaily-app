@@ -8,3 +8,6 @@ coverage/
 *.log
 Thumbs.db
 .DS_Store
+
+# Trabajo interno de agentes/skills — local-only, no se sube ni a GitHub ni al VPS.
+.workspace/

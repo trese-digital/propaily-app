@@ -1,17 +1,26 @@
 import Link from "next/link";
 
 import { db } from "@/server/db/client";
+import { requireContext } from "@/server/auth/context";
+import { logAdminAccess } from "@/server/audit/log";
 
 const cardLink =
   "block rounded-lg border border-[var(--border)] bg-[var(--bg)] p-5 transition-colors hover:border-[var(--color-pp-300)] hover:shadow-sm";
 
 export default async function AdminHome() {
-  // Conteos básicos cross-tenant. Esto es el primer caso de uso de
-  // queries cross-tenant del backoffice — todavía SIN AuditLog (Fase 3).
+  const ctx = await requireContext();
+
+  // Conteos cross-tenant. Cada vista al dashboard queda registrada.
   const [tenants, propiedades, avaluosPendientes] = await Promise.all([
     db.managementCompany.count({ where: { deletedAt: null } }),
     db.property.count({ where: { deletedAt: null, status: { not: "deleted" } } }),
     db.valuationRequest.count({ where: { status: "pending" } }),
+    logAdminAccess({
+      actorId: ctx.user.id,
+      action: "view",
+      entityType: "AdminDashboard",
+      metadata: { route: "/admin" },
+    }),
   ]);
 
   return (

@@ -1,4 +1,15 @@
-export default function AdminTenantsPage() {
+import { requireContext } from "@/server/auth/context";
+import { logAdminAccess } from "@/server/audit/log";
+
+export default async function AdminTenantsPage() {
+  const ctx = await requireContext();
+  await logAdminAccess({
+    actorId: ctx.user.id,
+    action: "list",
+    entityType: "ManagementCompany",
+    metadata: { route: "/admin/tenants" },
+  });
+
   return (
     <div className="mx-auto w-full max-w-3xl">
       <header className="mb-6">

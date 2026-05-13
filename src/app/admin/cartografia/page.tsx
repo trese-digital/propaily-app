@@ -1,4 +1,15 @@
-export default function AdminCartografiaPage() {
+import { requireContext } from "@/server/auth/context";
+import { logAdminAccess } from "@/server/audit/log";
+
+export default async function AdminCartografiaPage() {
+  const ctx = await requireContext();
+  await logAdminAccess({
+    actorId: ctx.user.id,
+    action: "view",
+    entityType: "CartografiaAdmin",
+    metadata: { route: "/admin/cartografia" },
+  });
+
   return (
     <div className="mx-auto w-full max-w-3xl">
       <header className="mb-6">

@@ -1,8 +1,19 @@
 import { db } from "@/server/db/client";
+import { requireContext } from "@/server/auth/context";
+import { logAdminAccess } from "@/server/audit/log";
 
 export default async function AdminAvaluosPage() {
-  const pendientes = await db.valuationRequest.count({ where: { status: "pending" } });
-  const enProgreso = await db.valuationRequest.count({ where: { status: "in_progress" } });
+  const ctx = await requireContext();
+  const [pendientes, enProgreso] = await Promise.all([
+    db.valuationRequest.count({ where: { status: "pending" } }),
+    db.valuationRequest.count({ where: { status: "in_progress" } }),
+    logAdminAccess({
+      actorId: ctx.user.id,
+      action: "list",
+      entityType: "ValuationRequest",
+      metadata: { route: "/admin/avaluos" },
+    }),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-3xl">

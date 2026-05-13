@@ -8,11 +8,14 @@ import { requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
 
 const BUCKET = "propaily-documents";
-const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"];
+// Formatos válidos detectados por sharp (no por header del browser).
+const ALLOWED_FORMATS = new Set(["jpeg", "png", "webp", "gif", "heif"]);
 const MAX_PHOTOS_PER_PROPERTY = 24;
-const MAX_SIZE = 25 * 1024 * 1024; // 25 MB de entrada (después se comprime)
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB (regla AGENTS.md §4)
 const MAX_DIMENSION = 2000; // px
 const WEBP_QUALITY = 82;
+// TTL para signed URLs inline (regla AGENTS.md §3): imágenes 15 min, docs 60s.
+const IMAGE_SIGNED_TTL_SECONDS = 60 * 15;
 
 export type AddPhotoState = {
   error?: string;
@@ -58,14 +61,23 @@ async function uploadOnePhoto(opts: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const { propertyId, managementCompanyId, file, displayOrder } = opts;
 
-  if (!ALLOWED_MIME.includes(file.type)) {
-    return { ok: false, error: `Formato no soportado: ${file.name}` };
-  }
   if (file.size > MAX_SIZE) {
-    return { ok: false, error: `${file.name} excede 25 MB` };
+    return { ok: false, error: `${file.name} excede 10 MB` };
   }
 
   const inputBuf = Buffer.from(await file.arrayBuffer());
+
+  // Validación de formato real con sharp (no por file.type del browser).
+  let meta;
+  try {
+    meta = await sharp(inputBuf, { failOn: "none" }).metadata();
+  } catch {
+    return { ok: false, error: `${file.name} no es una imagen válida` };
+  }
+  if (!meta.format || !ALLOWED_FORMATS.has(meta.format)) {
+    return { ok: false, error: `Formato no soportado: ${file.name}` };
+  }
+
   const optimized = await optimizeImage(inputBuf);
 
   const photoId = crypto.randomUUID();
@@ -176,7 +188,7 @@ export async function deletePropertyPhoto(photoId: string): Promise<{ ok?: boole
 
 export async function getPhotoUrl(storageKey: string): Promise<string | null> {
   const sb = createAdminClient();
-  const signed = await sb.storage.from(BUCKET).createSignedUrl(storageKey, 60 * 60);
+  const signed = await sb.storage.from(BUCKET).createSignedUrl(storageKey, IMAGE_SIGNED_TTL_SECONDS);
   if (signed.error) return null;
   return signed.data.signedUrl;
 }

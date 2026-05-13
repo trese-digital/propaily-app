@@ -2,12 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { fileTypeFromBuffer } from "file-type";
 
 import { db } from "@/server/db/client";
 import { requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
 
 const BUCKET = "propaily-documents";
+// MIME válidos para documentos (PDF + imágenes comunes). Se valida con bytes reales,
+// no con el header del browser (regla AGENTS.md §4).
+const ALLOWED_DOC_MIMES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+const MAX_DOC_BYTES = 25 * 1024 * 1024; // 25 MB para PDFs (regla AGENTS.md §4)
 
 const DOC_CATEGORIES = [
   "deed",
@@ -61,8 +73,15 @@ export async function uploadDocument(
   if (!(file instanceof File) || file.size === 0) {
     return { error: "Selecciona un archivo" };
   }
-  if (file.size > 25 * 1024 * 1024) {
+  if (file.size > MAX_DOC_BYTES) {
     return { error: "El archivo excede 25 MB" };
+  }
+
+  // Validación de MIME por bytes reales (regla AGENTS.md §4 — no confiar en file.type).
+  const fileBuf = Buffer.from(await file.arrayBuffer());
+  const detected = await fileTypeFromBuffer(fileBuf);
+  if (!detected || !ALLOWED_DOC_MIMES.has(detected.mime)) {
+    return { error: "Formato no soportado (PDF, JPG, PNG, WebP, HEIC)" };
   }
 
   // Validar que la propiedad pertenece a la org del usuario.
@@ -94,10 +113,9 @@ export async function uploadDocument(
       const version = 1;
       const storageKey = `${ctx.membership.managementCompanyId}/property/${property.id}/${d.id}/v${version}-${filename}`;
 
-      // Upload a Supabase
-      const buf = Buffer.from(await file.arrayBuffer());
-      const up = await sb.storage.from(BUCKET).upload(storageKey, buf, {
-        contentType: file.type || "application/octet-stream",
+      // Upload a Supabase (usamos el contentType detectado por bytes, no por header).
+      const up = await sb.storage.from(BUCKET).upload(storageKey, fileBuf, {
+        contentType: detected.mime,
         upsert: false,
       });
       if (up.error) throw new Error(up.error.message);

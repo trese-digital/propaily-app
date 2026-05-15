@@ -5,6 +5,7 @@ import {
   IcKey,
   IcLayers,
   IcMap,
+  IcShield,
   IcSpark,
   IcUsers,
 } from "@/components/icons";
@@ -29,9 +30,8 @@ export const APP_RAIL_WIDTH = 56;
  * - **Cartografía / Insights / Calculadoras** son addons: aparecen `disabled`
  *   cuando la Subscription no los incluye, para que el cliente vea que existen.
  * - **Propiedades** es CORE y ya está operativo.
- * - **Rentas / Clientes / Valuaciones / Mantenimiento** son módulos CORE aún en
- *   construcción (Bloque 1, sesiones S4-S6): se muestran `disabled` con la marca
- *   "· pronto" hasta que su fase los habilite.
+ * - **Mantenimiento** es un módulo CORE aún en construcción: se muestra
+ *   `disabled` con la marca "· pronto" hasta que su fase lo habilite.
  *
  * El gating real de acceso vive en el server (route handlers + page server
  * components), no acá.
@@ -73,9 +73,17 @@ export function buildRailItems(addons: {
     },
     {
       id: "valuaciones",
-      label: "Valuaciones · pronto",
+      label: "Valuaciones",
       icon: <IcChart size={18} />,
-      disabled: true,
+      href: "/valuaciones",
+      matchPrefix: "/valuaciones",
+    },
+    {
+      id: "usuarios",
+      label: "Usuarios",
+      icon: <IcShield size={18} />,
+      href: "/usuarios",
+      matchPrefix: "/usuarios",
     },
     {
       id: "mantenimiento",

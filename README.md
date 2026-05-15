@@ -58,3 +58,4 @@ npm run dev
 - Crecimiento por etapas: primero portafolio y propiedades; despues documentos, valuaciones, alertas y reportes.
 - Separacion por dominio: cada modulo contiene su UI, acciones, validaciones y consultas.
 - Datos sensibles protegidos: documentos privados, permisos por usuario/organizacion y registro de actividad.
+

@@ -15,7 +15,7 @@ export async function ensureUserSynced(
   email: string,
   name?: string | null,
 ) {
-  return dbBypass.user.upsert({
+  const user = await dbBypass.user.upsert({
     where: { id: supabaseUserId },
     update: {
       email,
@@ -28,4 +28,14 @@ export async function ensureUserSynced(
       status: "active",
     },
   });
+
+  // Un usuario invitado (creado por `invitarUsuario` con status `invited`) pasa
+  // a `active` la primera vez que autentica. No afecta usuarios `suspended`.
+  if (user.status === "invited") {
+    return dbBypass.user.update({
+      where: { id: user.id },
+      data: { status: "active" },
+    });
+  }
+  return user;
 }

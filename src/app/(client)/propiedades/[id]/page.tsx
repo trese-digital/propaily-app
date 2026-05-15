@@ -7,8 +7,21 @@ import { DocumentsSection, type DocumentRow } from "./documents-section";
 import { CoverPhoto } from "./cover-photo";
 import { PhotoGallery, type PhotoRow } from "./photo-gallery";
 import { UnitsSection, type UnitRow } from "./units-section";
+import {
+  ValuationsSection,
+  type OpenRequest,
+  type ValuationItem,
+} from "./valuations-section";
 import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
 import { getPhotoUrl } from "@/server/properties/photos";
+
+const VALUATION_TYPE_LABEL: Record<string, string> = {
+  professional: "Profesional GF",
+  commercial: "Comercial",
+  fiscal: "Fiscal",
+  insurance: "Seguro",
+  manual: "Manual",
+};
 
 const TYPE_LABEL: Record<string, string> = {
   land: "Terreno",
@@ -82,7 +95,7 @@ export default async function PropiedadDetallePage({
   // El catastro (schema public) no tiene RLS — no requiere withTenant.
   // Pero el catastroId que viajamos ya viene de p, que SÍ pasó por RLS arriba,
   // así que esta query catastral es segura.
-  const { carto, documents, photos } = await withAppScope(
+  const { carto, documents, photos, valuations, openReq } = await withAppScope(
     appScope(ctx),
     async (tx) => {
       let carto: CartoRow | null = null;
@@ -118,9 +131,46 @@ export default async function PropiedadDetallePage({
         where: { propertyId: p.id },
         orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       });
-      return { carto, documents, photos };
+
+      const valuations = await tx.valuation.findMany({
+        where: { propertyId: p.id, deletedAt: null },
+        orderBy: { valuationDate: "desc" },
+      });
+
+      const openReq = await tx.valuationRequest.findFirst({
+        where: { propertyId: p.id, status: { in: ["pending", "in_progress"] } },
+        orderBy: { createdAt: "desc" },
+      });
+      return { carto, documents, photos, valuations, openReq };
     },
   );
+
+  const valuationItems: ValuationItem[] = valuations.map((v) => ({
+    id: v.id,
+    typeLabel: VALUATION_TYPE_LABEL[v.type] ?? v.type,
+    valueLabel: fmtMoneyCents(v.valueCents),
+    dateLabel: v.valuationDate.toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    source: v.source,
+    isOfficial: v.isOfficial,
+  }));
+
+  const openRequest: OpenRequest | null = openReq
+    ? {
+        id: openReq.id,
+        statusLabel: openReq.status === "in_progress" ? "En progreso" : "Pendiente",
+        tone: openReq.status === "in_progress" ? "info" : "warn",
+        createdLabel: openReq.createdAt.toLocaleDateString("es-MX", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        cancelable: openReq.status === "pending",
+      }
+    : null;
   const documentRows: DocumentRow[] = documents.map((d) => ({
     id: d.id,
     name: d.name,
@@ -445,6 +495,12 @@ export default async function PropiedadDetallePage({
           <PhotoGallery propertyId={p.id} photos={photoRows} />
 
           <UnitsSection propertyId={p.id} units={unitRows} />
+
+          <ValuationsSection
+            propertyId={p.id}
+            valuations={valuationItems}
+            openRequest={openRequest}
+          />
 
           <DocumentsSection propertyId={p.id} documents={documentRows} />
         </div>

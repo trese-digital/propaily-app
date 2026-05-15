@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 
 import { login, type LoginState } from "./actions";
+import { TurnstileWidget } from "@/components/turnstile";
 import styles from "./login.module.css";
 
 const initialState: LoginState = {};
@@ -46,6 +47,8 @@ export default function LoginPage() {
             </label>
 
             {state?.error ? <p className={styles.error}>{state.error}</p> : null}
+
+            <TurnstileWidget pending={pending} />
 
             <button type="submit" disabled={pending} className={styles.button}>
               {pending ? "Validando…" : "Entrar"}

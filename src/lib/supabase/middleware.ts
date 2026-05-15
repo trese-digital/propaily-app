@@ -37,6 +37,9 @@ const PUBLIC_PATHS = [
   "/auth/callback",
   "/auth/confirm",
   "/api/health",
+  // Assets de PWA — el navegador los pide sin sesión.
+  "/sw.js",
+  "/manifest.webmanifest",
 ];
 
 function isPublic(pathname: string) {

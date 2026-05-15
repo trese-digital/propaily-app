@@ -23,8 +23,16 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
+  // Token de Cloudflare Turnstile (el widget lo inyecta en el form). Supabase
+  // lo verifica con su secret key; si el captcha está activo y falta, rechaza.
+  const tk = formData.get("cf-turnstile-response");
+  const captchaToken = typeof tk === "string" && tk ? tk : undefined;
+
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    ...parsed.data,
+    options: captchaToken ? { captchaToken } : undefined,
+  });
   if (error) {
     return { error: error.message };
   }

@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import "./globals.css";
 
 const geist = Geist({
@@ -21,13 +22,29 @@ export const metadata: Metadata = {
   title: "Propaily",
   description: "Cartografía y administración segura de portafolios inmobiliarios — by GF Consultoría",
   applicationName: "Propaily",
-  authors: [{ name: "GF Consultoría" }]
+  authors: [{ name: "GF Consultoría" }],
+  // PWA: iOS no usa el manifest — toma estos campos para la app instalada.
+  appleWebApp: {
+    capable: true,
+    title: "Propaily",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon-180.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6E3AFF",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="es" className={`${geist.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
   );
 }

@@ -62,7 +62,10 @@ export function pathOwner(pathname: string): PathOwner {
     pathname === "/login" ||
     pathname === "/signup" ||
     pathname.startsWith("/auth/") ||
-    pathname.startsWith("/api/")
+    pathname.startsWith("/api/") ||
+    // Assets de PWA: válidos y servidos en todos los hosts.
+    pathname === "/sw.js" ||
+    pathname === "/manifest.webmanifest"
   ) {
     return "shared";
   }

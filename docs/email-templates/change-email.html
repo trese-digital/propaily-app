@@ -1,0 +1,89 @@
+<!--
+  Propaily · Supabase email — "Change Email Address"
+  Variante A (Minimal). HTML email-safe: tablas + estilos inline.
+  Variables Supabase: {{ .ConfirmationURL }} · {{ .Email }} · {{ .NewEmail }}
+  Pegar en: Supabase → Authentication → Email Templates → Change email address
+-->
+<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Confirma tu nuevo correo</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F6F4FB;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F6F4FB;font-size:1px;line-height:1px;">
+    Confirma el cambio de correo de tu cuenta de Propaily.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6F4FB;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background-color:#ffffff;border:1px solid #E1DCEE;border-radius:16px;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:28px 40px 20px;border-bottom:1px solid #EEEAF6;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:21px;font-weight:700;color:#6E3AFF;letter-spacing:-0.02em;">propaily</td>
+                  <td align="right" style="font-family:'Geist Mono',Consolas,monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#9890AC;">by GF Consultoría</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px 40px 32px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-family:'Geist Mono',Consolas,monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#6B6480;">Cambio de correo</div>
+              <h1 style="margin:10px 0 14px;font-size:30px;line-height:1.15;font-weight:600;letter-spacing:-0.025em;color:#0E0A16;">Confirma tu nuevo correo</h1>
+              <p style="margin:0 0 24px;font-size:16px;line-height:1.55;color:#2D2738;">
+                Se solicitó cambiar el correo de acceso de tu cuenta de Propaily{{ if .NewEmail }} a <strong style="color:#0E0A16;">{{ .NewEmail }}</strong>{{ end }}. Confirma desde este buzón para aplicar el cambio.
+              </p>
+
+              <!-- CTA -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px;">
+                <tr>
+                  <td bgcolor="#6E3AFF" style="border-radius:10px;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 26px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Confirmar nuevo correo</a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Callout (warn) -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FFF8EB;border:1px solid #F6E0A8;border-radius:10px;">
+                <tr>
+                  <td style="padding:13px 16px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#8A5B00;">
+                    Si <strong>no solicitaste</strong> este cambio, no confirmes este correo y contacta a soporte de inmediato — la dirección de acceso de tu cuenta podría estar en riesgo.
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback link -->
+              <div style="margin-top:24px;padding-top:20px;border-top:1px solid #EEEAF6;">
+                <div style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#6B6480;margin-bottom:6px;">¿El botón no funciona? Copia y pega este enlace en tu navegador:</div>
+                <a href="{{ .ConfirmationURL }}" target="_blank" style="font-family:'Geist Mono',Consolas,monospace;font-size:12px;color:#5A24E6;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:22px 40px 28px;background-color:#FBFAFE;border-top:1px solid #EEEAF6;border-radius:0 0 16px 16px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-size:13px;font-weight:600;color:#2D2738;">Propaily</div>
+              <div style="font-size:12px;color:#6B6480;margin-top:2px;">Plataforma de administración inmobiliaria · GF Consultoría</div>
+              <div style="font-size:12px;color:#9890AC;margin-top:2px;">León, Guanajuato, México</div>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

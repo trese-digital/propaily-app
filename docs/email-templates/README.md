@@ -3,14 +3,21 @@
 Plantillas transaccionales **listas para producción** (HTML email-safe: tablas +
 estilos inline). Se pegan en Supabase y se envían vía Resend (SMTP propio).
 
-Diseño basado en los mockups de `inbox/email-templates/`. Variantes elegidas
-(híbrido): **Reset y Confirmación → A·Minimal** · **Invitación → B·Hero**.
+Diseño basado en los mockups de `inbox/email-templates/`. Las 8 plantillas que
+Supabase permite personalizar (6 de autenticación + 2 avisos de seguridad);
+todas con marca Propaily para que ninguna salga con el diseño default.
+Variante **B·Hero** para la invitación; **A·Minimal** para el resto.
 
 | Archivo | Tipo en Supabase | Variables usadas |
 |---|---|---|
+| `invite-user.html` | Invite user | `{{ .ConfirmationURL }}`, `{{ .Data.name }}` |
 | `reset-password.html` | Reset Password | `{{ .ConfirmationURL }}`, `{{ .Email }}`, `{{ .Data.name }}` |
 | `confirm-signup.html` | Confirm signup | `{{ .Token }}`, `{{ .ConfirmationURL }}`, `{{ .Email }}` |
-| `invite-user.html` | Invite user | `{{ .ConfirmationURL }}`, `{{ .Data.name }}` |
+| `magic-link.html` | Magic Link | `{{ .ConfirmationURL }}`, `{{ .Email }}` |
+| `change-email.html` | Change email address | `{{ .ConfirmationURL }}`, `{{ .NewEmail }}` |
+| `reauthentication.html` | Reauthentication | `{{ .Token }}` |
+| `password-changed.html` | Security · Password changed | `{{ .Email }}` |
+| `email-changed.html` | Security · Email address changed | `{{ .Email }}`, `{{ .NewEmail }}` |
 
 > El hero morado de `invite-user.html` se degrada a color sólido en Outlook de
 > escritorio (no soporta gradientes) — es esperado y se ve bien igual.
@@ -24,9 +31,18 @@ Diseño basado en los mockups de `inbox/email-templates/`. Variantes elegidas
 
 | Plantilla | Asunto sugerido |
 |---|---|
+| Invite user | `Te damos la bienvenida a Propaily` |
 | Reset Password | `Restablece tu contraseña de Propaily` |
 | Confirm signup | `Confirma tu correo · Propaily` |
-| Invite user | `Te damos la bienvenida a Propaily` |
+| Magic Link | `Tu enlace de acceso a Propaily` |
+| Change email address | `Confirma tu nuevo correo · Propaily` |
+| Reauthentication | `Tu código de verificación · Propaily` |
+| Password changed | `Tu contraseña de Propaily cambió` |
+| Email address changed | `El correo de acceso de tu cuenta cambió` |
+
+> **Invite / Reset / Confirm signup** son los que disparan correos hoy.
+> Magic Link, Change email y Reauthentication no se usan aún, pero se cargan
+> igual para que nunca salga un correo con el diseño default de Supabase.
 
 Tras guardar, probar: una recuperación de contraseña y una invitación desde
 `/usuarios` (app.propaily.com).

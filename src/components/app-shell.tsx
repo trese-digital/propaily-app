@@ -5,6 +5,7 @@ import { logout } from "@/app/(auth)/login/actions";
 import { AppRail } from "@/components/app-rail";
 import { buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail-items";
 import { Avatar, Button, Kbd, initialsFrom } from "@/components/ui";
+import { APP_VERSION } from "@/lib/version";
 import type { AddonState } from "@/server/access/has-addon";
 
 export function AppShell({
@@ -79,6 +80,7 @@ function TopBar({
           style={{ color: "var(--fg-muted)", paddingLeft: 12, borderLeft: "1px solid var(--border)" }}
         >
           {org}
+          <span style={{ opacity: 0.7 }}> · V{APP_VERSION}</span>
         </span>
       </Link>
 

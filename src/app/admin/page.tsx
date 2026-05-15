@@ -76,11 +76,19 @@ export default async function AdminHome() {
             Conectar propiedades de clientes con su lote catastral.
           </p>
         </Link>
+        <Link href={"/admin/auditoria" as never} className={cardLink}>
+          <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-pp-700)]">
+            Auditoría
+          </p>
+          <h2 className="mt-2 text-base font-semibold">Trazabilidad</h2>
+          <p className="mt-1 text-sm text-[var(--fg-muted)]">
+            Accesos y acciones del staff GF cross-tenant.
+          </p>
+        </Link>
       </section>
 
       <p className="mt-10 text-xs text-[var(--fg-muted)]">
-        Próximamente: cola de tareas asignadas, AuditLog cross-tenant en tiempo real, generador de
-        reportes anuales.
+        Próximamente: cola de tareas asignadas, generador de reportes anuales.
       </p>
     </div>
   );

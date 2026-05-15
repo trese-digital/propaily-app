@@ -37,6 +37,12 @@ const NAV: NavItem[] = [
     icon: <IconMap />,
     matchPrefix: "/admin/cartografia",
   },
+  {
+    href: "/admin/auditoria",
+    label: "Auditoría",
+    icon: <IconShield />,
+    matchPrefix: "/admin/auditoria",
+  },
 ];
 
 export function AdminShell({
@@ -234,6 +240,14 @@ function IconMap() {
       <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6" />
       <line x1="9" y1="3" x2="9" y2="18" />
       <line x1="15" y1="6" x2="15" y2="21" />
+    </svg>
+  );
+}
+function IconShield() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4z" />
+      <path d="m9 12 2 2 4-4" />
     </svg>
   );
 }

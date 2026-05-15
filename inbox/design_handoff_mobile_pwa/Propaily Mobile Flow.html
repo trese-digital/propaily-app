@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Propaily — Flujo móvil PWA</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="tokens.css" />
+<link rel="icon" href="assets/mark-violet.svg" type="image/svg+xml" />
+
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: "Geist", system-ui, sans-serif; }
+
+  /* Striped image placeholder, same as the platform file */
+  .pp-img-ph {
+    position: relative;
+    background:
+      repeating-linear-gradient(135deg, transparent 0 6px, rgba(110,58,255,0.05) 6px 7px),
+      linear-gradient(135deg, var(--pp-50) 0%, var(--ink-50) 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pp-600);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    overflow: hidden;
+  }
+  .pp-img-ph::after {
+    content: '';
+    position: absolute; inset: 6px;
+    border: 1px dashed rgba(110,58,255,0.35);
+    border-radius: 6px;
+    pointer-events: none;
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Foundations -->
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="components/logo.jsx"></script>
+<script type="text/babel" src="components/icons.jsx"></script>
+<script type="text/babel" src="components/ui-kit.jsx"></script>
+<script type="text/babel" src="components/extras.jsx"></script>
+<script type="text/babel" src="components/app-chrome.jsx"></script>
+
+<!-- Existing screens referenced by the flow -->
+<script type="text/babel" src="components/dashboard.jsx"></script>
+<script type="text/babel" src="components/notificaciones.jsx"></script>
+<script type="text/babel" src="components/ios-frame.jsx"></script>
+<script type="text/babel" src="components/mobile.jsx"></script>
+
+<!-- New screens for the storyboard -->
+<script type="text/babel" src="components/mobile-flow.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+// ────────────────────────────────────────────────────────────────────
+// Propaily · Flujo móvil PWA
+// 21 pantallas en 6 secciones, storyboard side-by-side.
+// Cada artboard tiene un label numerado: "01 · splash" → "21 · perfil"
+// para que coincida con el documento de implementación (Spec.md).
+// ────────────────────────────────────────────────────────────────────
+
+const Step = ({ n, label }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+    <span className="mono" style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: 22, height: 22, borderRadius: 6, background: 'var(--pp-500)', color: '#fff',
+      fontSize: 11, fontWeight: 600, letterSpacing: 0,
+    }}>{String(n).padStart(2, '0')}</span>
+    {label}
+  </span>
+);
+
+const stepLabel = (n, label) => <Step n={n} label={label} />;
+
+function App() {
+  return (
+    <DesignCanvas>
+      {/* ─── INTRO ──────────────────────────────────────────────── */}
+      <DCSection
+        id="intro"
+        title="Flujo móvil · PWA"
+        subtitle="21 pantallas · 5 sub-flujos (onboarding · auth · propietario · inquilino · admin · compartido). Para handoff de implementación ver Propaily-Mobile-PWA-Spec.md."
+      >
+        <DCArtboard id="cover" label="Portada · resumen del flujo" width={620} height={874}>
+          <CoverCard />
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── A · Primer arranque · PWA ──────────────────────────── */}
+      <DCSection
+        id="flujo-a"
+        title="A · Primer arranque (PWA)"
+        subtitle="De abrir la URL en Safari por primera vez hasta tener el icono en la pantalla de inicio y elegir un rol."
+      >
+        <DCArtboard id="a1" label={stepLabel(1, 'Splash · cold start')} width={402} height={874}>
+          <IOSDevice><MFlowSplash /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="a2" label={stepLabel(2, 'Onboarding · consulta')} width={402} height={874}>
+          <IOSDevice><MFlowOnboard1 /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="a3" label={stepLabel(3, 'Onboarding · aprueba')} width={402} height={874}>
+          <IOSDevice><MFlowOnboard2 /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="a4" label={stepLabel(4, 'Add to Home · sheet PWA')} width={402} height={874}>
+          <IOSDevice><MFlowInstall /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="a5" label={stepLabel(5, 'Selector de rol')} width={402} height={874}>
+          <IOSDevice><MFlowRole /></IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── B · Login (magic link) ─────────────────────────────── */}
+      <DCSection
+        id="flujo-b"
+        title="B · Login · magic link"
+        subtitle="Sin contraseñas. Email → revisar buzón → tap al link → sesión abierta."
+      >
+        <DCArtboard id="b1" label={stepLabel(6, 'Email + SSO')} width={402} height={874}>
+          <IOSDevice><MobileLogin /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="b2" label={stepLabel(7, 'Revisa tu correo')} width={402} height={874}>
+          <IOSDevice><MFlowMagicSent /></IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── C · Propietario ─────────────────────────────────────── */}
+      <DCSection
+        id="flujo-c"
+        title="C · Propietario · día típico"
+        subtitle="Home → detalle de propiedad → bandeja de aprobaciones → aprobar renovación. Mantra: consultar + aprobar."
+      >
+        <DCArtboard id="c1" label={stepLabel(8, 'Home propietario')} width={402} height={874}>
+          <IOSDevice><MobileHome /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="c2" label={stepLabel(9, 'Detalle propiedad · galería + catastro')} width={402} height={874}>
+          <IOSDevice><MobilePropDetalle /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="c3" label={stepLabel(10, 'Pendientes · te toca aprobar')} width={402} height={874}>
+          <IOSDevice><MFlowOwnerPending /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="c4" label={stepLabel(11, 'Aprobar renovación · detalle')} width={402} height={874}>
+          <IOSDevice><MFlowApproveDetail /></IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── D · Inquilino ───────────────────────────────────────── */}
+      <DCSection
+        id="flujo-d"
+        title="D · Inquilino · pagar y reportar"
+        subtitle="Pago de renta con comprobante (foto del recibo) + nueva solicitud de mantenimiento con cámara."
+      >
+        <DCArtboard id="d1" label={stepLabel(12, 'Próximo pago · SPEI')} width={402} height={874}>
+          <IOSDevice><MobilePago /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="d2" label={stepLabel(13, 'Subir comprobante')} width={402} height={874}>
+          <IOSDevice><MFlowComprobUpload /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="d3" label={stepLabel(14, 'Comprobante enviado')} width={402} height={874}>
+          <IOSDevice><MFlowComprobOk /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="d4" label={stepLabel(15, 'Nueva solicitud mantenimiento')} width={402} height={874}>
+          <IOSDevice keyboard><MobileMantenimiento /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="d5" label={stepLabel(16, 'Cámara · foto del problema')} width={402} height={874}>
+          <IOSDevice><MFlowCamera /></IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── E · Admin ───────────────────────────────────────────── */}
+      <DCSection
+        id="flujo-e"
+        title="E · Admin / operador GFC en campo"
+        subtitle="Misma app, otro foco: ruta del día, cobranza y mantenimiento desde el teléfono."
+      >
+        <DCArtboard id="e1" label={stepLabel(17, 'Home admin · hoy')} width={402} height={874}>
+          <IOSDevice><MFlowAdminHome /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="e2" label={stepLabel(18, 'Cobranza · prioridad')} width={402} height={874}>
+          <IOSDevice><MFlowAdminCobranza /></IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── F · Compartido ─────────────────────────────────────── */}
+      <DCSection
+        id="flujo-f"
+        title="F · Compartido entre roles"
+        subtitle="Avisos (la entrada al detalle de cualquier evento) + perfil con cambio de rol."
+      >
+        <DCArtboard id="f1" label={stepLabel(19, 'Avisos · centro de notificaciones')} width={402} height={874}>
+          <IOSDevice><MobileNotif /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="f2" label={stepLabel(20, 'Detalle de aviso')} width={402} height={874}>
+          <IOSDevice><MFlowAvisoDetalle /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="f3" label={stepLabel(21, 'Perfil · cambiar rol · cerrar sesión')} width={402} height={874}>
+          <IOSDevice><MFlowPerfil /></IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      <DCPostIt top={-44} right={40} rotate={-2} width={240}>
+        Storyboard pensado para handoff. Cada pantalla está documentada en
+        <strong> Propaily-Mobile-PWA-Spec.md</strong> con eventos, endpoints sugeridos,
+        permisos PWA y estados.
+      </DCPostIt>
+    </DesignCanvas>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Cover card — sirve como índice visual del documento
+// ────────────────────────────────────────────────────────────────────
+function CoverCard() {
+  const sections = [
+    ['A', 'Primer arranque PWA', '5 pantallas', '01 → 05', 'var(--pp-500)'],
+    ['B', 'Login · magic link', '2 pantallas', '06 → 07', '#3B82F6'],
+    ['C', 'Propietario', '4 pantallas', '08 → 11', '#10B981'],
+    ['D', 'Inquilino', '5 pantallas', '12 → 16', '#F59E0B'],
+    ['E', 'Admin GFC', '2 pantallas', '17 → 18', 'var(--pp-700)'],
+    ['F', 'Compartido', '3 pantallas', '19 → 21', 'var(--ink-700)'],
+  ];
+  return (
+    <div style={{
+      width: '100%', height: '100%', background: '#fff', borderRadius: 14,
+      border: '1px solid var(--ink-100)', padding: 32, boxSizing: 'border-box',
+      display: 'flex', flexDirection: 'column', gap: 18, overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <PropailyMark size={48} bg="var(--pp-500)" fg="#fff" radius={11} />
+        <div style={{ flex: 1 }}>
+          <span className="mono" style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--pp-700)', fontWeight: 600 }}>
+            propaily · flujo móvil
+          </span>
+          <h1 style={{ margin: '4px 0 0', font: '600 28px var(--font-sans)', letterSpacing: '-0.025em' }}>
+            app.propaily.com · PWA
+          </h1>
+        </div>
+        <span className="mono" style={{ fontSize: 10, color: 'var(--ink-500)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          v0.1 · interno
+        </span>
+      </div>
+
+      <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-600)', lineHeight: 1.55, maxWidth: '52ch' }}>
+        21 pantallas que cubren el ciclo móvil completo: instalar la PWA, iniciar sesión sin
+        contraseña, y operar como propietario, inquilino o admin de GFC.
+        <br /><br />
+        Cada sección abajo agrupa un sub-flujo. Las pantallas marcadas en gris reúsan componentes
+        ya entregados en <span className="mono">mobile.jsx</span>; las moradas son nuevas para
+        cerrar el ciclo.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+        {sections.map(([letter, name, count, range, color]) => (
+          <div key={letter} style={{
+            padding: '12px 14px', borderRadius: 10, background: 'var(--ink-25)',
+            border: '1px solid var(--ink-100)',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <span style={{
+              width: 28, height: 28, borderRadius: 8, background: color, color: '#fff',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              font: '700 13px var(--font-sans)',
+            }}>{letter}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '600 14px var(--font-sans)', letterSpacing: '-0.005em' }}>{name}</div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--ink-500)' }}>{count}</div>
+            </div>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--ink-700)', fontWeight: 600 }}>{range}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      <div style={{
+        padding: 14, borderRadius: 10, background: 'var(--pp-50)',
+        border: '1px solid var(--pp-100)', display: 'flex', gap: 12, alignItems: 'flex-start',
+      }}>
+        <span style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--pp-500)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
+          <IcDoc size={14}/>
+        </span>
+        <div style={{ flex: 1 }}>
+          <div style={{ font: '600 13px var(--font-sans)', color: 'var(--pp-700)' }}>
+            Para implementación
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink-700)', marginTop: 2, lineHeight: 1.5 }}>
+            Abre <span className="mono" style={{ background: '#fff', padding: '1px 6px', borderRadius: 4, border: '1px solid var(--pp-200)' }}>Propaily-Mobile-PWA-Spec.md</span> —
+            tiene manifest, service worker, permisos, endpoints, eventos analíticos y un mapa
+            de pantalla → ruta → estado.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

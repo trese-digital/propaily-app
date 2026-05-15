@@ -1,0 +1,63 @@
+// Propaily wordmark — inline SVG, currentColor controllable
+const PropailyLogo = ({ height = 28, color = 'currentColor', endorsement = false, style = {} }) => {
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, color, ...style }}>
+      <svg
+        viewBox="0 0 286.02 68.85"
+        height={height}
+        style={{ display: 'block', overflow: 'visible' }}
+        aria-label="Propaily"
+      >
+        <g fill="currentColor">
+          <path d="M0,35.26c0-11.97,8.08-19.11,18.96-19.11s19.25,7.71,19.25,19.18c0,12.4-9.23,18.31-17.3,18.31-4.25,0-7.86-1.66-10.09-4.83v19.11H0v-32.66ZM27.25,34.9c0-5.12-3.32-8.65-8.22-8.65s-8.22,3.53-8.22,8.65,3.32,8.65,8.22,8.65,8.22-3.53,8.22-8.65Z"/>
+          <path d="M43.84,32.44c0-11.1,6.49-16.29,16.01-16.29s15.93,5.12,16.01,16.37v.22h-10.81v-.29c0-4.76-2.16-6.2-5.19-6.2s-5.19,1.44-5.19,6.2v20.26h-10.81v-20.26Z"/>
+          <path d="M78.81,34.9c0-10.81,7.93-18.75,19.18-18.75s19.18,7.93,19.18,18.75-7.93,18.75-19.18,18.75-19.18-7.93-19.18-18.75ZM106.2,34.9c0-5.12-3.32-8.65-8.22-8.65s-8.22,3.53-8.22,8.65,3.32,8.65,8.22,8.65,8.22-3.53,8.22-8.65Z"/>
+          <path d="M122.79,35.26c0-11.97,8.08-19.11,18.96-19.11s19.25,7.71,19.25,19.18c0,12.4-9.23,18.31-17.3,18.31-4.25,0-7.86-1.66-10.09-4.83v19.11h-10.81v-32.66ZM150.04,34.9c0-5.12-3.32-8.65-8.22-8.65s-8.22,3.53-8.22,8.65,3.32,8.65,8.22,8.65,8.22-3.53,8.22-8.65Z"/>
+          <path d="M165.18,35.33c0-11.46,7.93-19.18,19.25-19.18s18.96,7.43,18.96,19.11v17.45h-9.95v-5.91c-1.88,4.4-5.91,6.85-11.03,6.85-7.93,0-17.23-5.91-17.23-18.31ZM192.58,34.9c0-5.12-3.32-8.65-8.22-8.65s-8.22,3.53-8.22,8.65,3.32,8.65,8.22,8.65,8.22-3.53,8.22-8.65Z"/>
+          <path d="M210.1,6.92c0-3.97,2.96-6.92,6.92-6.92s6.92,2.96,6.92,6.92-2.96,6.92-6.92,6.92-6.92-2.96-6.92-6.92ZM211.62,17.09h10.81v35.62h-10.81V17.09Z"/>
+          <path d="M231.81,1.51h10.81v51.19h-10.81V1.51Z"/>
+          <path d="M251.13,56.16h10.81c1.08,2.38,2.96,3.32,6.42,3.32,4.76,0,6.85-2.24,6.85-7.64v-3.53c-2.02,3.1-5.12,4.76-8.87,4.76-7.5,0-15.5-5.05-15.5-18.1v-17.88h10.81v17.88c0,5.62,2.74,8,6.78,8s6.78-2.52,6.78-8v-17.88h10.82v34.39c0,12.4-7.93,17.38-17.66,17.38-8.44,0-15.43-3.89-17.23-12.69Z"/>
+        </g>
+      </svg>
+      {endorsement && (
+        <span
+          className="mono"
+          style={{
+            fontSize: Math.max(8, height * 0.28),
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'inherit',
+            opacity: 0.55,
+            marginLeft: height * 0.1,
+          }}
+        >
+          by GF Consultoría
+        </span>
+      )}
+    </span>
+  );
+};
+
+// Glyph version — just the "P" pictogram (extracted from the wordmark, used as app icon)
+const PropailyMark = ({ size = 32, bg = 'var(--pp-500)', fg = '#fff', radius = 8, style = {} }) => (
+  <span
+    style={{
+      width: size,
+      height: size,
+      borderRadius: radius,
+      background: bg,
+      color: fg,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flex: '0 0 auto',
+      ...style,
+    }}
+  >
+    <svg viewBox="0 0 38 68" height={size * 0.62} style={{ display: 'block', overflow: 'visible' }}>
+      <path fill="currentColor" d="M0,35.26c0-11.97,8.08-19.11,18.96-19.11s19.25,7.71,19.25,19.18c0,12.4-9.23,18.31-17.3,18.31-4.25,0-7.86-1.66-10.09-4.83v19.11H0v-32.66ZM27.25,34.9c0-5.12-3.32-8.65-8.22-8.65s-8.22,3.53-8.22,8.65,3.32,8.65,8.22,8.65,8.22-3.53,8.22-8.65Z"/>
+    </svg>
+  </span>
+);
+
+Object.assign(window, { PropailyLogo, PropailyMark });

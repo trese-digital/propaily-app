@@ -40,6 +40,10 @@ const PUBLIC_PATHS = [
   // Assets de PWA — el navegador los pide sin sesión.
   "/sw.js",
   "/manifest.webmanifest",
+  // PWA mobile (`/m/*`) — Fase 1: las 21 pantallas son UI con datos del
+  // Portafolio Demo, navegables sin sesión. La Fase 2 protegerá las rutas
+  // autenticadas (todo salvo splash / onboarding / login).
+  "/m",
 ];
 
 function isPublic(pathname: string) {

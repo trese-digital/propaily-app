@@ -67,7 +67,7 @@ Propaily tiene **dos frontends sobre la misma DB**:
 | Auth | Supabase Auth (`@supabase/ssr`) | Middleware protege rutas |
 | Storage | Supabase Storage | Bucket **privado**, signed URLs **60s** |
 | Imágenes | sharp | auto-rotate → resize 1600px → WebP quality 82 |
-| Mapa | Leaflet + react-leaflet | Solo client-side, en `(visor)/cartografia` |
+| Mapa | Google Maps JS API (`@googlemaps/js-api-loader`) | Solo client-side, en `(visor)/cartografia`. Capas `google.maps.Data` consumen GeoJSON de PostGIS. Key en `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` |
 | Pagos | Stripe (subscriptions + add-ons + webhooks) | Server-side, con verificación de firma |
 | Fuentes | Geist + Geist Mono via `next/font` | |
 | Identidad visual | Morado `#6E3AFF` | No introducir paletas paralelas |
@@ -151,7 +151,7 @@ Tenant ─┬─ Subscription ─── Plan (Starter/Growth/Pro/Enterprise)
 11. **`params` y `searchParams` son `Promise`.** Siempre `await`.
 12. **`fetch` no cachea por default en 16.** Si necesitas cache, opt-in explícito.
 13. **Server Actions para mutaciones desde formularios.** No API routes ad-hoc si Server Action sirve.
-14. **`'use client'` solo cuando necesites state/efectos/browser APIs.** Leaflet sí, formularios estáticos no.
+14. **`'use client'` solo cuando necesites state/efectos/browser APIs.** El mapa sí, formularios estáticos no.
 
 ### Multi-tenancy y addons
 15. **`tenantId` viaja por session (JWT custom claim), NO por URL.**
@@ -271,7 +271,7 @@ Cuando una tarea pertenece a un dominio, **invoca al especialista correspondient
 
 | Tarea | Invocar |
 |---|---|
-| Visor, mapa Leaflet, queries PostGIS, performance espacial | `geospatial-engineer` |
+| Visor, mapa (Google Maps), queries PostGIS, performance espacial | `geospatial-engineer` |
 | Lógica de bienes raíces (AVM, MLS, geo-search facetado) | `real-estate-tech` |
 | Schema Prisma, migraciones, queries complejas | `prisma-expert` |
 | Next.js 16, App Router, Server Components, Server Actions | `nextjs-expert` |
@@ -331,7 +331,7 @@ Cuando una tarea pertenece a un dominio, **invoca al especialista correspondient
 **Antes de proponer un cambio:**
 1. Si toca DB → revisar primero qué schema (`public` vs `propaily`)
 2. Si toca rutas → revisar middleware y route group afectado
-3. Si toca cartografía → recordar que Leaflet es client-only
+3. Si toca cartografía → recordar que el mapa (Google Maps) es client-only
 4. Si toca uploads → recordar que el bucket es privado y signed URLs son 60s
 5. Si toca facturación → involucrar a `stripe-expert`
 
@@ -358,7 +358,7 @@ Cuando una tarea pertenece a un dominio, **invoca al especialista correspondient
 - `prisma migrate dev` quiere tocar tabla en schema `public` → MAL, eso es Alembic
 - Signed URL con TTL >60s → revisar por qué
 - `SUPABASE_SERVICE_ROLE_KEY` referenciada fuera de `src/server/` → bandera roja inmediata
-- Componente Leaflet sin `"use client"` → no va a compilar
+- Componente del mapa sin `"use client"` → no va a compilar
 - Query Prisma a un modelo de `propaily` sin filtro `tenantId` → leak cross-tenant
 - Form con >5 campos sin autosave → bug P1 esperando suceder
 - `findUnique({ where: { id } })` sin `tenantId` → bypass de seguridad

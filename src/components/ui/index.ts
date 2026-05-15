@@ -1,0 +1,20 @@
+/** Kit de primitivas v2 — punto único de import: `@/components/ui`. */
+export { Button, IconButton } from "./button";
+export type { ButtonVariant, ButtonSize } from "./button";
+export { Badge } from "./badge";
+export type { BadgeTone } from "./badge";
+export { Chip } from "./chip";
+export { Avatar, initialsFrom } from "./avatar";
+export { SensitivityPill } from "./sensitivity-pill";
+export { Card, CardHeader, CardBody } from "./card";
+export { Field, Input, Textarea, Select, Kbd } from "./form";
+export { Table, THead, TH, TBody, TR, TD } from "./table";
+export { Kpi } from "./kpi";
+export { Toast, Skeleton, SkeletonRow, EmptyState } from "./feedback";
+export type { ToastTone } from "./feedback";
+export { Tabs } from "./tabs";
+export type { TabItem } from "./tabs";
+export { Segmented } from "./segmented";
+export type { SegmentItem } from "./segmented";
+export { Toggle } from "./toggle";
+export { Modal } from "./modal";

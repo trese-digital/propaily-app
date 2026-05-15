@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { withTenant } from "@/server/db/scoped";
 import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { listPortfolioOptions } from "@/server/portfolios/list";
 import { PropertyForm } from "@/components/property-form";
 import { DeletePropertyButton } from "./delete-button";
 
@@ -18,10 +19,16 @@ export default async function EditarPropiedadPage({
   const ctx = await requireContext();
   const { id } = await params;
 
-  const p = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const scope = {
+    managementCompanyId: ctx.membership.managementCompanyId,
+    clientId: ctx.client?.id ?? null,
+  };
+  const p = await withAppScope(scope, (tx) =>
     tx.property.findFirst({ where: { id, deletedAt: null } }),
   );
   if (!p) notFound();
+
+  const portfolios = await listPortfolioOptions(ctx);
 
   return (
     <section className="max-w-3xl mx-auto px-7 py-12">
@@ -38,8 +45,10 @@ export default async function EditarPropiedadPage({
         <PropertyForm
           mode="edit"
           propertyId={p.id}
+          portfolios={portfolios}
           defaults={{
             name: p.name,
+            portfolioId: p.portfolioId,
             type: p.type,
             operationalStatus: p.operationalStatus,
             address: p.address ?? "",

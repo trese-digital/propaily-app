@@ -4,7 +4,7 @@
  * Uso:
  *   const gate = await requireAddon("cartografia");
  *   if (!gate.ok) return gate.response;
- *   const { user, managementCompanyId } = gate;
+ *   const { user, managementCompanyId, clientId } = gate;
  *
  * Falla cerrado: sin sesión, sin membership o sin addon → 401/403 con JSON.
  */
@@ -18,6 +18,8 @@ type Ok = {
   ok: true;
   user: { id: string; email: string | null };
   managementCompanyId: string;
+  /** Client al que está acotado el usuario (family office), o null si es operador. */
+  clientId: string | null;
 };
 type Err = { ok: false; response: NextResponse };
 
@@ -38,7 +40,7 @@ export async function requireAddon(addon: Addon): Promise<Ok | Err> {
 
   const membership = await dbBypass.membership.findFirst({
     where: { userId: user.id, status: "active" },
-    select: { managementCompanyId: true },
+    select: { managementCompanyId: true, clientId: true },
   });
   if (!membership) {
     return {
@@ -65,5 +67,6 @@ export async function requireAddon(addon: Addon): Promise<Ok | Err> {
     ok: true,
     user: { id: user.id, email: user.email ?? null },
     managementCompanyId: membership.managementCompanyId,
+    clientId: membership.clientId,
   };
 }

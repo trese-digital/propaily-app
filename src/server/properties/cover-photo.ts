@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 
-import { withTenant } from "@/server/db/scoped";
-import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { appScope, requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
 
 const BUCKET = "propaily-documents";
@@ -31,7 +31,7 @@ export async function setPropertyCoverPhoto(
   if (!(file instanceof File) || file.size === 0) return { error: "Selecciona una imagen" };
   if (file.size > MAX_INPUT) return { error: "La imagen excede 10 MB" };
 
-  const property = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const property = await withAppScope(appScope(ctx), (tx) =>
     tx.property.findFirst({ where: { id: propertyId, deletedAt: null } }),
   );
   if (!property) return { error: "Propiedad no encontrada" };
@@ -70,7 +70,7 @@ export async function setPropertyCoverPhoto(
   });
   if (up.error) return { error: up.error.message };
 
-  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  await withAppScope(appScope(ctx), (tx) =>
     tx.property.update({
       where: { id: property.id },
       data: { coverPhotoStorageKey: storageKey },

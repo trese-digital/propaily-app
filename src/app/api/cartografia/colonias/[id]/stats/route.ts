@@ -7,8 +7,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 // Mezcla queries: public.predios (sin RLS) + propaily.Property.count (con RLS).
-// Para la query a propaily usamos withTenant; para catastro basta dbApp.
-import { dbApp, withTenant } from "@/server/db/scoped";
+// Para la query a propaily usamos withAppScope; para catastro basta dbApp.
+import { dbApp, withAppScope } from "@/server/db/scoped";
 import { requireAddon } from "@/server/access/require-addon";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -54,10 +54,12 @@ export async function GET(
   // mostrar al cliente ("tienes X propiedades en esta colonia"). Antes el
   // comentario decía "sin filtrar por tenant" pero esa era la lectura cuando
   // el código corría como gfc — ahora con RLS el filtro es automático.
-  const numPropiedadesPropaily = await withTenant(gate.managementCompanyId, (tx) =>
-    tx.property.count({
-      where: { cartoColoniaId: id, deletedAt: null, status: { not: "deleted" } },
-    }),
+  const numPropiedadesPropaily = await withAppScope(
+    { managementCompanyId: gate.managementCompanyId, clientId: gate.clientId },
+    (tx) =>
+      tx.property.count({
+        where: { cartoColoniaId: id, deletedAt: null, status: { not: "deleted" } },
+      }),
   );
 
   const num = (v: string | null) => (v == null ? null : Number(v));

@@ -1,6 +1,6 @@
 # 🟢 Estado de sesión — Propaily
 
-> **Última actualización**: 2026-05-13 (sesión 7) · **Fase actual**: 6 + P2 UX cerrado + nueva identidad visual aplicada
+> **Última actualización**: 2026-05-13 (hotfix) · **Fase actual**: 6 + **P2 cerrado por completo** + nueva identidad visual aplicada
 > Changelog completo: [CHANGELOG.md](CHANGELOG.md)
 > ADR de la fusión: [`../cartografia-gfc/bitacora-sesiones/2026-05-12_adr-fusion-propaily.md`](../cartografia-gfc/bitacora-sesiones/2026-05-12_adr-fusion-propaily.md)
 > Handoff de identidad: [`../cartografia-gfc/propaily-handoff/`](../cartografia-gfc/propaily-handoff/) — tokens, logos y componentes de referencia.
@@ -49,9 +49,12 @@ Login: `pablo.torres.sm@gmail.com` / `GFC2026admin`.
 - [x] **#7** Toggle vista grid / lista en listado. _Hecho 2026-05-13 sesión 6._
 
 ### P2 — Cartografía con más info
-- [~] **#12** Sidebar visor al seleccionar colonia. _Parcial 2026-05-13 sesión 6:_ ya muestra nº de lotes, lote típico, lote promedio, rango y propiedades de Propaily vinculadas. **Falta:** servicios cercanos (escuelas, salud) y áreas verdes — requieren integrar capas DENUE/INEGI primero (sesión aparte con `data-integrator`).
+- [x] **#12** Sidebar visor al seleccionar colonia. _Cerrado 2026-05-13 (hotfix):_ muestra nº de lotes, lote típico, lote promedio, rango y propiedades de Propaily vinculadas. Servicios cercanos y áreas verdes se mueven a P3 (#14) por requerir integración de datos externos.
+
+**✅ P2 cerrado por completo.**
 
 ### P3 — Features grandes
+- [ ] **#14** Servicios cercanos en el sidebar del visor (escuelas, salud, áreas verdes). Requiere integrar capas **DENUE/INEGI** primero — descargar DENUE de León (cód. 61 educación, 62 salud), cargar a tabla nueva en schema `public` vía Alembic, y conectar al endpoint del Inspector. Sesión de datos aparte.
 - [ ] **#13** Calculadora de valor catastral (fiscal + mercado, terreno + construcción). Necesita migrar `cartografia-gfc/data/construccion.json` (BIMSA/VARELA) al modelo.
 - [ ] **#8** Sección perfil + portafolios + invitar agentes + permisos granulares.
 - [ ] **6.4** Valuaciones (historial de valor por propiedad).

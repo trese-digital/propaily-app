@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
 
 /* ============================================================
    Propaily Design Tokens — v1
@@ -40,6 +39,17 @@
   --color-warn: #f59e0b;
   --color-bad: #ef4444;
   --color-info: #3b82f6;
+
+  /* Semánticos — variantes soft (fondo) y fg (texto sobre soft).
+     Para badges, toasts, alerts. Componentes consumen estos, no hex. */
+  --color-ok-soft: #ecfdf5;
+  --color-ok-fg: #065f46;
+  --color-warn-soft: #fffbeb;
+  --color-warn-fg: #92400e;
+  --color-bad-soft: #fef2f2;
+  --color-bad-fg: #991b1b;
+  --color-info-soft: #eff6ff;
+  --color-info-fg: #1e3a8a;
 
   /* Fuentes — Geist via next/font (fallback system) */
   --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -177,25 +187,22 @@ body {
   );
 }
 
-/* ── Leaflet tooltip con identidad Propaily ── */
-.leaflet-tooltip.pp-tt {
+/* ── Tooltip flotante del visor (Google Maps) ── */
+.gmap-tt {
+  position: absolute;
+  z-index: 500;
+  display: none;
+  pointer-events: none;
   background: var(--color-ink-900);
   color: #fff;
-  border: none;
   font-family: var(--font-mono);
   font-size: 11px;
   padding: 6px 10px;
   letter-spacing: 0.04em;
+  line-height: 1.45;
   box-shadow: var(--shadow-sm);
   border-radius: var(--radius-sm);
-}
-.leaflet-tooltip.pp-tt::before {
-  display: none;
-}
-
-.leaflet-container {
-  background: var(--bg-subtle);
-  font-family: var(--font-sans);
+  white-space: nowrap;
 }
 
 /* Compatibilidad temporal — clases gfc-* del visor legacy */
@@ -217,19 +224,6 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-.leaflet-tooltip.gfc-tt {
-  background: var(--color-ink-900);
-  color: #fff;
-  border: none;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 6px 10px;
-  letter-spacing: 0.04em;
-  border-radius: var(--radius-sm);
-}
-.leaflet-tooltip.gfc-tt::before {
-  display: none;
 }
 
 /* ── Focus ring accesible ──────────────────── */

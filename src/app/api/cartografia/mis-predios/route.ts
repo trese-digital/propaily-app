@@ -9,7 +9,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { withTenant } from "@/server/db/scoped";
+import { withAppScope } from "@/server/db/scoped";
 import { parseBbox } from "@/server/cartografia/bbox";
 import { requireAddon } from "@/server/access/require-addon";
 
@@ -37,12 +37,13 @@ export async function GET(request: NextRequest) {
   const { w, s, e, n } = bboxResult.bbox;
   const mcId = gate.managementCompanyId;
 
-  // El JOIN cruza schemas (propaily.Property → public.predios). withTenant
-  // setea app.management_company_id para que RLS filtre Property/Portfolio/Client.
-  // Quitamos el filtro explícito `cli."managementCompanyId" = mcId` porque RLS
-  // ya lo hace; lo dejamos como defensa redundante en el WHERE — si por algún
-  // motivo RLS no estuviera activo, el filtro sigue ahí.
-  const rows = await withTenant(mcId, (tx) =>
+  // El JOIN cruza schemas (propaily.Property → public.predios). withAppScope
+  // setea app.management_company_id (+ app.client_id si es family office) para
+  // que RLS filtre Property/Portfolio/Client. El filtro explícito por
+  // managementCompanyId queda como defensa redundante en el WHERE.
+  const rows = await withAppScope(
+    { managementCompanyId: mcId, clientId: gate.clientId },
+    (tx) =>
     tx.$queryRaw<Row[]>`
       SELECT
           p.id::text                       AS predio_id,

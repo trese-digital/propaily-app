@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { fileTypeFromBuffer } from "file-type";
 
-import { withTenant } from "@/server/db/scoped";
-import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { appScope, requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
 
 const BUCKET = "propaily-documents";
@@ -84,13 +84,14 @@ export async function uploadDocument(
     return { error: "Formato no soportado (PDF, JPG, PNG, WebP, HEIC)" };
   }
 
-  // withTenant abre $transaction y setea app.management_company_id — todas las
-  // queries de adentro respetan RLS y rolean back juntas si algo falla.
+  // withAppScope abre $transaction y setea app.management_company_id (+ app.client_id
+  // si es family office) — todas las queries de adentro respetan RLS y rolean back
+  // juntas si algo falla.
   const sb = createAdminClient();
   const filename = sanitizeFilename(file.name);
 
   try {
-    const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+    const result = await withAppScope(appScope(ctx), async (tx) => {
       const property = await tx.property.findFirst({
         where: { id: v.propertyId, deletedAt: null },
       });
@@ -146,7 +147,7 @@ export async function uploadDocument(
 
 export async function getDocumentSignedUrl(documentId: string): Promise<{ url?: string; error?: string }> {
   const ctx = await requireContext();
-  const d = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const d = await withAppScope(appScope(ctx), (tx) =>
     tx.document.findFirst({
       where: { id: documentId, status: { not: "deleted" } },
       include: { versions: { orderBy: { version: "desc" }, take: 1 } },
@@ -181,7 +182,7 @@ export async function editDocument(
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
 
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+  const result = await withAppScope(appScope(ctx), async (tx) => {
     const d = await tx.document.findFirst({
       where: { id: documentId, status: { not: "deleted" } },
       select: { id: true, propertyId: true },
@@ -205,7 +206,7 @@ export async function editDocument(
 
 export async function deleteDocument(documentId: string): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+  const result = await withAppScope(appScope(ctx), async (tx) => {
     const d = await tx.document.findFirst({
       where: { id: documentId, status: { not: "deleted" } },
       select: { id: true, propertyId: true },

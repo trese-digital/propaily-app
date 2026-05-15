@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 
-import { withTenant } from "@/server/db/scoped";
-import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { appScope, requireContext } from "@/server/auth/context";
 import { createAdminClient } from "@/lib/supabase/server";
+
+type AppScope = { managementCompanyId: string; clientId: string | null };
 
 const BUCKET = "propaily-documents";
 // Formatos válidos detectados por sharp (no por header del browser).
@@ -55,12 +57,11 @@ async function optimizeImage(buf: Buffer): Promise<{ data: Buffer; width: number
 
 async function uploadOnePhoto(opts: {
   propertyId: string;
-  managementCompanyId: string;
+  scope: AppScope;
   file: File;
   displayOrder: number;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { propertyId, managementCompanyId, file, displayOrder } = opts;
-  void managementCompanyId; // ya scopeado por withTenant arriba; se queda como key del path
+  const { propertyId, scope, file, displayOrder } = opts;
 
   if (file.size > MAX_SIZE) {
     return { ok: false, error: `${file.name} excede 10 MB` };
@@ -83,7 +84,7 @@ async function uploadOnePhoto(opts: {
 
   const photoId = crypto.randomUUID();
   const baseName = sanitize(file.name.replace(/\.[^.]+$/, "")) || "photo";
-  const storageKey = `${managementCompanyId}/property/${propertyId}/gallery/${photoId}-${baseName}.webp`;
+  const storageKey = `${scope.managementCompanyId}/property/${propertyId}/gallery/${photoId}-${baseName}.webp`;
 
   const sb = createAdminClient();
   const up = await sb.storage.from(BUCKET).upload(storageKey, optimized.data, {
@@ -92,7 +93,7 @@ async function uploadOnePhoto(opts: {
   });
   if (up.error) return { ok: false, error: up.error.message };
 
-  await withTenant(opts.managementCompanyId, (tx) =>
+  await withAppScope(scope, (tx) =>
     tx.propertyPhoto.create({
       data: {
         id: photoId,
@@ -120,12 +121,13 @@ export async function addPropertyPhoto(
   if (!propertyId) return { error: "propertyId requerido" };
   if (files.length === 0) return { error: "Selecciona al menos una imagen" };
 
-  const property = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const scope = appScope(ctx);
+  const property = await withAppScope(scope, (tx) =>
     tx.property.findFirst({ where: { id: propertyId, deletedAt: null } }),
   );
   if (!property) return { error: "Propiedad no encontrada" };
 
-  const photoCount = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const photoCount = await withAppScope(scope, (tx) =>
     tx.propertyPhoto.count({ where: { propertyId: property.id } }),
   );
   const availableSlots = MAX_PHOTOS_PER_PROPERTY - photoCount;
@@ -141,7 +143,7 @@ export async function addPropertyPhoto(
   for (let i = 0; i < toUpload.length; i++) {
     const r = await uploadOnePhoto({
       propertyId: property.id,
-      managementCompanyId: ctx.membership.managementCompanyId,
+      scope,
       file: toUpload[i],
       displayOrder: photoCount + i,
     });
@@ -168,7 +170,8 @@ export async function addPropertyPhoto(
 
 export async function deletePropertyPhoto(photoId: string): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const photo = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const scope = appScope(ctx);
+  const photo = await withAppScope(scope, (tx) =>
     tx.propertyPhoto.findFirst({
       where: { id: photoId },
       select: { id: true, propertyId: true, storageKey: true },
@@ -178,7 +181,7 @@ export async function deletePropertyPhoto(photoId: string): Promise<{ ok?: boole
 
   const sb = createAdminClient();
   await sb.storage.from(BUCKET).remove([photo.storageKey]);
-  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  await withAppScope(scope, (tx) =>
     tx.propertyPhoto.delete({ where: { id: photo.id } }),
   );
 
@@ -197,7 +200,7 @@ export async function setPropertyCoverFromPhoto(
   photoId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+  const result = await withAppScope(appScope(ctx), async (tx) => {
     const photo = await tx.propertyPhoto.findFirst({ where: { id: photoId } });
     if (!photo) return { error: "Foto no encontrada" } as const;
 

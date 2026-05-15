@@ -50,7 +50,11 @@ function convexHull(pts: [number, number][]): [number, number][] {
   return lower.concat(upper);
 }
 
-/** Devuelve dimensiones del lote: frente (lado mayor), fondo (menor), perímetro real. */
+/**
+ * Devuelve dimensiones del lote.
+ * Convención catastral MX: el frente es la cara a calle (lado menor del
+ * bounding box mínimo) y el fondo es la profundidad (lado mayor).
+ */
 export function loteDimsFromGeometry(
   geom: Geometry | null | undefined,
 ): { frente: number; fondo: number; perimetro: number } | null {
@@ -101,8 +105,8 @@ export function loteDimsFromGeometry(
   if (!best) return null;
 
   return {
-    frente: Math.max(best.w, best.h),
-    fondo: Math.min(best.w, best.h),
+    frente: Math.min(best.w, best.h),
+    fondo: Math.max(best.w, best.h),
     perimetro: perim,
   };
 }

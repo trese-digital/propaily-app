@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { withTenant } from "@/server/db/scoped";
-import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { requireContext, type AppContext } from "@/server/auth/context";
 
 const PROP_TYPES = [
   "house",
@@ -33,6 +33,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const PropertySchema = z.object({
   name: z.string().trim().min(1, "Nombre requerido"),
+  portfolioId: z
+    .string()
+    .trim()
+    .refine((v) => UUID_RE.test(v), "Selecciona un portafolio"),
   type: z.enum(PROP_TYPES),
   operationalStatus: z.enum(OPERATIONAL_STATUSES).optional(),
   address: z.string().trim().optional(),
@@ -59,6 +63,7 @@ const PropertySchema = z.object({
 
 const FIELDS = [
   "name",
+  "portfolioId",
   "type",
   "operationalStatus",
   "address",
@@ -90,6 +95,14 @@ function toBigIntCents(mxn: number | undefined) {
 
 export type PropertyFormState = { error?: string; fieldErrors?: Record<string, string> };
 
+/** Deriva el scope de RLS del contexto: MC siempre, Client si es family office. */
+function scopeOf(ctx: AppContext) {
+  return {
+    managementCompanyId: ctx.membership.managementCompanyId,
+    clientId: ctx.client?.id ?? null,
+  };
+}
+
 export async function crearPropiedad(
   _prev: PropertyFormState,
   formData: FormData,
@@ -106,18 +119,21 @@ export async function crearPropiedad(
   }
   const v = parsed.data;
 
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
-    const defaultPortfolio = await tx.portfolio.findFirst({
-      where: { name: "General", status: "active" },
-      orderBy: { createdAt: "asc" },
+  const result = await withAppScope(scopeOf(ctx), async (tx) => {
+    // El portafolio lo elige el usuario. RLS garantiza que sólo vea los suyos;
+    // este findFirst además da un error claro si el id no es accesible.
+    const portfolio = await tx.portfolio.findFirst({
+      where: { id: v.portfolioId, status: "active", deletedAt: null },
     });
-    if (!defaultPortfolio) {
-      return { error: "No hay portafolio por defecto. Corre seed-org.mjs." } as const;
+    if (!portfolio) {
+      return {
+        error: "El portafolio seleccionado no existe o no es accesible.",
+      } as const;
     }
 
     const property = await tx.property.create({
       data: {
-        portfolioId: defaultPortfolio.id,
+        portfolioId: portfolio.id,
         name: v.name,
         type: v.type,
         operationalStatus: v.operationalStatus ?? "active",
@@ -162,15 +178,28 @@ export async function editarPropiedad(
   }
   const v = parsed.data;
 
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+  const result = await withAppScope(scopeOf(ctx), async (tx) => {
     const property = await tx.property.findFirst({
       where: { id: propertyId, deletedAt: null },
     });
     if (!property) return { error: "Propiedad no encontrada" } as const;
 
+    // Si se mueve de portafolio, validar que el destino sea accesible.
+    if (v.portfolioId !== property.portfolioId) {
+      const dest = await tx.portfolio.findFirst({
+        where: { id: v.portfolioId, status: "active", deletedAt: null },
+      });
+      if (!dest) {
+        return {
+          error: "El portafolio seleccionado no existe o no es accesible.",
+        } as const;
+      }
+    }
+
     await tx.property.update({
       where: { id: property.id },
       data: {
+        portfolioId: v.portfolioId,
         name: v.name,
         type: v.type,
         operationalStatus: v.operationalStatus ?? property.operationalStatus,
@@ -214,7 +243,7 @@ export async function vincularPropiedadConLote(
     return { error: "IDs inválidos" };
   }
 
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+  const result = await withAppScope(scopeOf(ctx), async (tx) => {
     const property = await tx.property.findFirst({
       where: { id: propertyId, deletedAt: null },
     });
@@ -242,7 +271,7 @@ export async function vincularPropiedadConLote(
 
 export async function eliminarPropiedad(propertyId: string): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+  const result = await withAppScope(scopeOf(ctx), async (tx) => {
     const property = await tx.property.findFirst({
       where: { id: propertyId, deletedAt: null },
     });

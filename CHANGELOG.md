@@ -4,6 +4,194 @@ Bitácora de cambios. Formato: cada entrada es una sesión con su fecha, las fas
 
 ---
 
+## 2026-05-15 — Cierre de pendientes (pre-S6)
+
+Antes de S6 se cierran los pendientes acumulados de sesiones previas.
+
+**S2b · RLS — `Membership` scopeada por Client** (hallazgo del `/security-review` de S2)
+- Migración `20260515170000_s2b_rls_membership_scope` — la policy de `Membership` añade el filtro `current_client()`: un usuario family office sólo ve los memberships de su propio Client (crítico para S6 · Usuarios, que lista memberships vía `withAppScope`).
+- `Vendor`, `ExchangeRate`, `ImportJob`, `ExportJob`, `Notification` quedan MC-level **a propósito** — datos operativos compartidos / sin lineage de Client / sin UI client-facing. Documentado en la migración: deja de ser "gap latente", es decisión.
+- `scripts/verify-fo-isolation.mjs` extendido — 13/13 checks OK, incluida la nueva aserción de aislamiento de `Membership`.
+
+**S5b · Calendario de rentas** — `src/app/(client)/rentas/calendario/page.tsx`
+- Grilla mensual de 12 meses: filas = contratos, columnas = meses, celdas con estatus de pago (pagado / tarde / pendiente / vencido / sin pago) — todo derivado de los `RentPayment` reales.
+- KPIs del mes: cobrado, por cobrar, vencido, renta esperada.
+- Nav Contratos ↔ Calendario en ambas pantallas de Rentas.
+
+**No cerrado a propósito** — re-skin del listado/detalle de Propiedades al kit v2 (S3). Es cosmético: las páginas ya están en identidad v2 desde la sesión 7; re-skinearlas da cero cambio visible. Queda como deuda de baja prioridad.
+
+**Validación** — `npm run typecheck` limpio · `npx eslint .` exit 0.
+
+---
+
+## 2026-05-15 — S5 · Módulo Rentas (contratos + pagos)
+
+Quinta sesión. Módulo core de arrendamiento — antes sólo existía el modelo de
+datos, sin UI.
+
+**Server actions**
+- `src/server/leases/actions.ts` — `crearContrato`: renta mixta (contrato sobre Propiedad **o** Unidad, campo `target` con prefijo `prop:`/`unit:`), valida fechas y visibilidad RLS, y **auto-genera el calendario de pagos** — un `RentPayment` por mes calendario entre inicio y fin; el día de vencimiento se ajusta al último día en meses cortos (decisión S2-D). `cancelarContrato`: cancela el contrato y los pagos futuros pendientes, conserva el histórico.
+- `src/server/rent-payments/actions.ts` — `registrarPago` (confirma + fecha), `revertirPago`, `cancelarPago`.
+- `src/server/leases/rentable-options.ts` — lista propiedades + unidades rentables, scopeada por RLS.
+
+**Pantallas** (`src/app/(client)/rentas/`)
+- `page.tsx` — tabla de contratos: inquilino, propiedad/unidad, renta + día, próximo pago (con "vencido Nd"), vigencia, estatus. Header con ingreso esperado.
+- `nuevo/page.tsx` + `contract-form.tsx` — alta de contrato con selector propiedad/unidad (optgroups), fechas, día de pago, depósito, opción "activar al crear".
+- `[id]/page.tsx` — detalle: hero con renta mensual, KPIs (cobrado, pagos pendientes, depósito, vigencia), calendario de pagos con acción "Registrar pago" / "Revertir" por fila (`payment-list.tsx`), datos del contrato. `lease-actions.tsx` — botón "Cancelar contrato".
+
+**Chrome** — ítem "Rentas" del rail activado (`/rentas`).
+
+**Validación** — `npm run typecheck` limpio · `npx eslint .` exit 0 (14 warnings deuda P3; `react-hooks/purity` bajada a warn — `Date.now()` en Server Components es falso positivo).
+
+**Pendiente de S5** — vista de calendario mensual (`/rentas/calendario`) y la pestaña "Pagos del mes" agregada. El dato (`RentPayment.dueDate`) ya existe; es sólo visualización.
+
+---
+
+## 2026-05-15 — S4 · Módulo Clientes / Portafolios
+
+Cuarta sesión del plan. UI nueva para la jerarquía `Client → Portfolio →
+Property` — antes los family offices sólo existían vía script.
+
+**Server actions**
+- `src/server/clients/actions.ts` — `crearCliente` (sólo operadores GF), `editarCliente`. Zod, `withAppScope`, soft-delete-aware.
+- `src/server/portfolios/actions.ts` — `crearPortafolio`, valida que el Client sea visible por RLS.
+
+**Pantallas** (`src/app/(client)/clientes/`)
+- `page.tsx` — listado de clientes en grilla: avatar, tipo, conteo de portafolios y propiedades, `EmptyState` si no hay. Botón "Nuevo cliente" sólo para operadores.
+- `[id]/page.tsx` — detalle: header, KPIs (propiedades, valor total, portafolios, documentos — datos reales), lista de portafolios con valor agregado, grilla de propiedades, datos fiscales/legales, notas internas.
+- `new-client-modal.tsx` / `new-portfolio-modal.tsx` — modales de alta con el kit `Modal` + `useActionState`.
+
+**Chrome** — el ítem "Clientes" del rail pasa de `disabled · pronto` a activo (`/clientes`).
+
+**Validación** — `npm run typecheck` limpio · `npm run lint` exit 0. `/clientes` → 307 (redirige a login sin sesión, sin errores de compilación).
+
+---
+
+## 2026-05-15 — S3 (parcial) · Re-skin v2 del Dashboard
+
+Tercera sesión del plan. Re-skin del portal cliente con el kit v2 de S1.
+
+**Dashboard** — `src/app/(client)/page.tsx` reescrito sobre el kit `@/components/ui` (`Card`, `CardHeader`, `Kpi`, `Badge`) y `@/components/icons`, siguiendo el layout de `inbox/components/dashboard.jsx`:
+- KPI strip de 4 con el componente `Kpi` — Valor estimado, Propiedades, Renta mensual (suma real de `Unit.monthlyRentCents`), Documentos. Todos con datos reales (sin inventar).
+- Grid principal: mapa-preview + "Accesos rápidos" con teaser de Insights.
+- Grilla de propiedades recientes con `Badge` de estatus.
+- Saludo usa `ctx.client?.name` cuando el usuario es family office.
+- `Kpi` (kit) ganó prop `note` para la línea de contexto sin delta.
+
+**Validación** — `npm run typecheck` limpio · `npm run lint` exit 0.
+
+**Pendiente de S3** — re-skin del listado de Propiedades (`propiedades/page.tsx`) y el detalle (`[id]/page.tsx`) al kit v2. Ya funcionan y traen tokens v2 de la sesión 7 (no están rotos ni fuera de marca) — el re-skin restante es consolidación al kit, prioridad menor que avanzar a S4/S5.
+
+---
+
+## 2026-05-15 — S2 · Fundación de datos (User↔Client + RLS dual + roles)
+
+Segunda sesión del plan v2. Habilita la jerarquía real `Client → Portfolio →
+Property` y el scoping dual (operador GF vs portal family office).
+
+**Migración de schema** — `20260515155736_s2_user_client_link`
+- `Membership.clientId String?` (+ índice + FK a `Client`, `onDelete: SetNull`): null = operador GF (ve toda la MC), set = family office (ve sólo ese Client).
+- `ManagementCompany.isPlatformOperator Boolean` — marca la MC operadora de plataforma.
+- `Client.memberships` back-relation.
+
+**Migración RLS** — `20260515160000_s2_rls_client_scope` (SQL bruto)
+- `current_client()` — lee la variable de sesión `app.client_id`.
+- Los 4 helpers base (`is_my_client/portfolio/property/unit`) y las 3 policies inline (Client/Portfolio/Property) ganan el filtro opcional `current_client() IS NULL OR …`. `is_my_lease`/`is_my_document` heredan vía delegación.
+- Backfill: `isPlatformOperator = true` para "GF Consultoría".
+
+**Capa de auth**
+- `src/server/auth/roles.ts` — nuevo. Capa semántica sobre el enum `Role` (no se renombra — decisión S2-B): `isGfStaffRole`, `isClientAdminRole`, `ROLE_LABELS`.
+- `src/server/auth/is-gf-staff.ts` — usa `isPlatformOperator` en vez del nombre literal "GF Consultoría" (decisión S2-C).
+- `src/server/auth/context.ts` — `AppContext` gana `accessScope: "gf" | "client"` y `client: {id,name} | null`.
+
+**Capa de DB**
+- `src/server/db/scoped.ts` — `withClientScope` (setea `app.client_id`) y `withAppScope` (elige scoping según haya clientId).
+
+**Eliminación del portafolio "General" hardcodeado**
+- `src/server/portfolios/list.ts` — nuevo: `listPortfolioOptions(ctx)`.
+- `src/server/properties/actions.ts` — `crearPropiedad`/`editarPropiedad` reciben `portfolioId` del formulario (validado, antes era el portafolio "General" fijo); todas las funciones usan `withAppScope`.
+- `src/components/property-form.tsx` — selector de portafolio (`Cliente · Portafolio`).
+- `nueva/page.tsx` y `editar/page.tsx` — cargan los portafolios visibles.
+- `scripts/seed-org.mjs` — setea `isPlatformOperator: true`.
+
+**Sweep `withTenant` → `withAppScope`** — completado en todo el portal cliente: `(client)` dashboard/listado/detalle, server actions de `units`, `photos`, `cover-photo`, `documents`, y rutas API `cartografia/mis-predios` y `colonias/[id]/stats` (`requireAddon` ahora devuelve `clientId`). `appScope(ctx)` nuevo helper en `context.ts`. Ya no quedan rutas del portal cliente sin scoping de Client.
+
+**Alta de cuentas family office** — `scripts/seed-family-offices.mjs` (nuevo):
+- 2 operadores GF: `admin@propaily.com` (`company_admin`), `pablo@propaily.com` (`company_operator`) — `clientId` null, ven toda la MC.
+- 3 family offices, cada uno = `Client` + portafolio "General" + usuario login con `Membership.clientId` y rol `owner`: Grupo Velazquez, Familia Gorozpe Velazquez, Familia Torres Santa Maria.
+
+**Verificación de aislamiento** — `scripts/verify-fo-isolation.mjs` (nuevo): 10/10 checks OK. Cada family office ve sólo su Client y portafolios; los intentos de lectura cruzada devuelven null; el operador GF ve los 3.
+
+**Validación**
+- `npm run typecheck` limpio · `npm run lint` exit 0.
+
+**`/security-review` de S2** — audit multi-agente del diff completo. El RLS dual se confirmó **sólido y consistente** en todo el portal cliente (sin SQLi, sin path traversal, sin fugas en pages/actions). 2 hallazgos MEDIUM:
+- **Corregido:** `is-gf-staff.ts` no filtraba `clientId: null` — un membership family office con rol de staff habría entrado al backoffice. Ahora `clientId: null` en el `where` hace que staff y `accessScope: "client"` sean excluyentes por construcción.
+- **Tracked (no explotable hoy):** las tablas scopeadas sólo por MC en `rls_rollout` (`Membership`, `Vendor`, `Notification`, `ImportJob`, `ExportJob`, `ExchangeRate`) no recibieron el filtro `current_client()`. Ningún código del portal cliente las consulta vía `withAppScope` aún. Debe cerrarse antes de que S4/S6 construyan UIs que las lean (policy client-scoped o `REVOKE` según la tabla).
+
+---
+
+## 2026-05-15 — S1 · Design system v2 (kit de primitivas + chrome)
+
+Primera sesión del plan v2 + Bloque 1/2 (12 fases / 8 sesiones). Fundación de UI.
+
+**Tokens**
+- `src/app/globals.css`: añadidas variantes semánticas soft/fg (`--color-ok-soft/-fg`, `warn`, `bad`, `info`) para badges, toasts y alerts. El resto de tokens de `inbox/tokens.css` ya estaban como `@theme`.
+
+**Iconos**
+- `src/components/icons.tsx` — nuevo. Port tipado de los 32 iconos de `inbox/components/icons.jsx` (stroke 1.6, viewBox 24, `currentColor`). Sin `"use client"`.
+
+**Kit de primitivas — `src/components/ui/`** (nuevo)
+- `button.tsx` — `Button` (variantes primary/secondary/ghost/danger · tamaños sm/md/lg) + `IconButton`.
+- `badge.tsx` — `Badge` con dot, 6 tonos.
+- `chip.tsx` — `Chip` con variante active y removible.
+- `avatar.tsx` — `Avatar` (iniciales sobre gradiente) + helper `initialsFrom`.
+- `sensitivity-pill.tsx` — `SensitivityPill` (normal/sensible).
+- `card.tsx` — `Card`, `CardHeader`, `CardBody`.
+- `form.tsx` — `Field`, `Input` (leading/trailing/mono), `Textarea`, `Select`, `Kbd`.
+- `table.tsx` — `Table`, `THead`, `TH`, `TBody`, `TR`, `TD` (header mono uppercase, zebra).
+- `kpi.tsx` — `Kpi` (label mono, número tabular, delta badge, sparkline).
+- `feedback.tsx` — `Toast`, `Skeleton`, `SkeletonRow`, `EmptyState`.
+- `tabs.tsx`, `segmented.tsx`, `toggle.tsx`, `modal.tsx` — interactivos (`"use client"`).
+- `index.ts` — barrel; import único vía `@/components/ui`.
+- `src/lib/cn.ts` — helper minimal para unir clases.
+
+**Chrome**
+- `src/components/app-rail-items.tsx`: rail v2 con los módulos reales — Cartografía, Propiedades, Rentas, Clientes, Valuaciones, Mantenimiento, Insights, Calculadoras. Rentas/Clientes/Valuaciones/Mantenimiento aparecen `disabled · pronto` hasta que su fase los habilite (S4-S6). Iconos consolidados desde `icons.tsx` (eliminado `RailIcons` interno).
+- `src/components/app-shell.tsx`: el `TopBar` consume el kit (`Avatar`, `Button`, `Kbd`, `initialsFrom`) — menos estilos inline duplicados.
+
+**Fix de ESLint (config roto pre-existente)**
+- `eslint.config.mjs` reescrito: se elimina `@eslint/eslintrc`/`FlatCompat` (rompía con estructura circular en el plugin react bajo ESLint 9.39 — el lint nunca corría). Ahora usa el flat config nativo que ya exporta `eslint-config-next` v16.
+- Ignora `inbox/**` (mockups de referencia, no código de app) y `scripts/**`.
+- `react-hooks/set-state-in-effect` y `react-hooks/refs` quedan en `warn`: reglas nuevas de react-hooks v6 que el visor de cartografía (pre-v6) aún no cumple — deuda técnica P3, no bloquean.
+
+**Validación**
+- `npm run typecheck` limpio.
+- `npm run lint` exit 0 — 0 errores, 11 warnings (deuda P3 pre-existente en cartografía). Cero hallazgos en el código de S1.
+- Smoke test: `/welcome` y `/login` → 200.
+
+---
+
+## 2026-05-13 — Hotfix · `buildRailItems` server/client boundary
+
+**Síntoma:** `http://localhost:3000` devolvía 500. Runtime error: _"Attempted to call buildRailItems() from the server but buildRailItems is on the client"_ desde `AppShell` (Server Component) línea 19.
+
+**Causa:** `src/components/app-rail.tsx` arrancaba con `"use client"` pero exportaba también `buildRailItems()` (función pura) y `APP_RAIL_WIDTH`. En Next 16 / RSC, un Server Component no puede llamar funciones no-componente exportadas por un módulo client.
+
+**Fix:** extraer lo "puro" a un módulo neutro.
+- `src/components/app-rail-items.tsx` — nuevo, sin `"use client"`. Exporta `RailItem`, `RailIcons`, `buildRailItems`, `APP_RAIL_WIDTH`.
+- `src/components/app-rail.tsx` — queda con `"use client"` y solo exporta el componente `AppRail`. Importa el tipo `RailItem` del módulo neutro.
+- `src/components/app-shell.tsx` y `src/components/cartografia/Visor.tsx` — importadores actualizados: el componente desde `@/components/app-rail`, la config/función desde `@/components/app-rail-items`.
+
+**Validación:** `npm run typecheck` limpio. `GET /` → 307 → `/welcome` → 200.
+
+**Cierre de P2** — decisión de scope, sin cambio de código:
+- **#12** (sidebar de colonia) se da por **cerrado en lo factible**. Las estadísticas de lotes (nº, típico, promedio, rango, propiedades Propaily) ya estaban completas desde la sesión 6.
+- Servicios cercanos (escuelas, salud) y áreas verdes se reabren como **#14 en P3**: requieren integrar datos DENUE/INEGI al schema `public` (Alembic) — el schema hoy solo tiene `colonias`, `predios`, `tramos`, `valores_colonia`, `valores_tramo`, sin capas de servicios.
+- **P2 queda 100% cerrado.**
+
+---
+
 ## 2026-05-13 — Sesión 7 · Nueva identidad Propaily (morado + Geist)
 
 **Migración completa de identidad visual** — paquete `cartografia-gfc/propaily-handoff/` aplicado a toda la app Next.js.

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Propaily — Plataforma</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="tokens.css" />
+<link rel="icon" href="assets/mark-violet.svg" type="image/svg+xml" />
+
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: "Geist", system-ui, sans-serif; }
+
+  /* Striped placeholder used wherever an image hasn't been provided yet.
+     Diagonal stripes + mono label so it's obvious in handoff. */
+  .pp-img-ph {
+    position: relative;
+    background:
+      repeating-linear-gradient(135deg, transparent 0 6px, rgba(110,58,255,0.05) 6px 7px),
+      linear-gradient(135deg, var(--pp-50) 0%, var(--ink-50) 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pp-600);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    overflow: hidden;
+  }
+  .pp-img-ph::after {
+    content: '';
+    position: absolute; inset: 6px;
+    border: 1px dashed rgba(110,58,255,0.35);
+    border-radius: 6px;
+    pointer-events: none;
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Foundations -->
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="components/logo.jsx"></script>
+<script type="text/babel" src="components/icons.jsx"></script>
+<script type="text/babel" src="components/ui-kit.jsx"></script>
+<script type="text/babel" src="components/extras.jsx"></script>
+<script type="text/babel" src="components/app-chrome.jsx"></script>
+
+<!-- Existing screens (re-used as reference / context) -->
+<script type="text/babel" src="components/dashboard.jsx"></script>
+<script type="text/babel" src="components/propiedades.jsx"></script>
+
+<!-- New modules -->
+<script type="text/babel" src="components/rentas-calendario.jsx"></script>
+<script type="text/babel" src="components/rentas-lista.jsx"></script>
+<script type="text/babel" src="components/rentas-detalle.jsx"></script>
+<script type="text/babel" src="components/clientes.jsx"></script>
+<script type="text/babel" src="components/valuaciones.jsx"></script>
+<script type="text/babel" src="components/mantenimiento.jsx"></script>
+<script type="text/babel" src="components/notificaciones.jsx"></script>
+<script type="text/babel" src="components/usuarios.jsx"></script>
+<script type="text/babel" src="components/suscripcion.jsx"></script>
+<script type="text/babel" src="components/estados.jsx"></script>
+<script type="text/babel" src="components/ios-frame.jsx"></script>
+<script type="text/babel" src="components/mobile.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+function App() {
+  return (
+    <DesignCanvas>
+      {/* ─── Context — what's already shipped ─────────────────────── */}
+      <DCSection
+        id="contexto"
+        title="Contexto · módulos ya operables"
+        subtitle="Para referencia visual del lenguaje existente"
+      >
+        <DCArtboard id="dashboard"   label="Dashboard · home"        width={1440} height={1100}><Dashboard /></DCArtboard>
+        <DCArtboard id="propiedades" label="Propiedades · listado"   width={1440} height={1000}><Propiedades /></DCArtboard>
+      </DCSection>
+
+      {/* ─── Rentas — el módulo core, 3 variaciones ───────────────── */}
+      <DCSection
+        id="rentas"
+        title="Rentas · módulo core"
+        subtitle="3 vistas alternativas — recomiendo combinarlas como pestañas"
+      >
+        <DCArtboard id="rentas-cal"      label="A · Calendario de pagos (salud financiera)" width={1440} height={1080}><RentasCalendario /></DCArtboard>
+        <DCArtboard id="rentas-lista"    label="B · Lista de contratos"                     width={1440} height={950}><RentasLista /></DCArtboard>
+        <DCArtboard id="rentas-detalle"  label="C · Detalle de contrato"                    width={1440} height={1100}><RentasDetalle /></DCArtboard>
+      </DCSection>
+
+      {/* ─── Clientes y Portafolios ───────────────────────────────── */}
+      <DCSection
+        id="clientes"
+        title="Clientes y Portafolios"
+        subtitle="Jerarquía hoy invisible — ahora explícita y navegable"
+      >
+        <DCArtboard id="clientes-detalle" label="Lista jerárquica + detalle de cliente" width={1440} height={1100}><Clientes /></DCArtboard>
+      </DCSection>
+
+      {/* ─── Valuaciones ──────────────────────────────────────────── */}
+      <DCSection
+        id="valuaciones"
+        title="Valuaciones"
+        subtitle="Histórico append-only · vinculable a Cartografía (valor fiscal de catastro)"
+      >
+        <DCArtboard id="valuaciones-historico" label="Histórico + chart + solicitud" width={1440} height={1280}><Valuaciones /></DCArtboard>
+      </DCSection>
+
+      {/* ─── Mantenimiento ────────────────────────────────────────── */}
+      <DCSection
+        id="mantenimiento"
+        title="Mantenimiento"
+        subtitle="Kanban por estatus · proveedores y costos en cada tarjeta"
+      >
+        <DCArtboard id="mantenimiento-kanban" label="Kanban de solicitudes" width={1620} height={1000}><Mantenimiento /></DCArtboard>
+      </DCSection>
+
+      {/* ─── Operación · cross-cutting ────────────────────────────── */}
+      <DCSection
+        id="operacion"
+        title="Operación"
+        subtitle="Vistas transversales que recogen eventos de toda la app"
+      >
+        <DCArtboard id="notif" label="Centro de notificaciones" width={1440} height={1000}><Notificaciones /></DCArtboard>
+      </DCSection>
+
+      {/* ─── Admin · empresa ──────────────────────────────────────── */}
+      <DCSection
+        id="admin"
+        title="Administración de empresa"
+        subtitle="Configuración de GFC como ManagementCompany — multi-tenant"
+      >
+        <DCArtboard id="usuarios"     label="Usuarios y permisos · matriz" width={1440} height={1080}><Usuarios /></DCArtboard>
+        <DCArtboard id="suscripcion"  label="Suscripción · plan · add-ons · billing" width={1440} height={1280}><Suscripcion /></DCArtboard>
+      </DCSection>
+
+      {/* ─── System states ────────────────────────────────────────── */}
+      <DCSection
+        id="estados"
+        title="Estados del sistema"
+        subtitle="Empty · modales · toasts · loading · errores · éxito"
+      >
+        <DCArtboard id="estados" label="Patrones de estado completos" width={1440} height={2120}><Estados /></DCArtboard>
+      </DCSection>
+
+      {/* ─── Mobile — consult & approve ───────────────────────────── */}
+      <DCSection
+        id="mobile"
+        title="Móvil · responsive"
+        subtitle="App para inquilinos, propietarios y admins en movimiento. Foco: consultar + aprobar."
+      >
+        <DCArtboard id="m-login"  label="Login · onboarding"        width={402} height={874}>
+          <IOSDevice><MobileLogin /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="m-home"   label="Home (propietario)"        width={402} height={874}>
+          <IOSDevice><MobileHome /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="m-prop"   label="Detalle de propiedad"      width={402} height={874}>
+          <IOSDevice><MobilePropDetalle /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="m-pago"   label="Próximo pago (inquilino)"  width={402} height={874}>
+          <IOSDevice><MobilePago /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="m-maint"  label="Nueva solicitud (manten.)" width={402} height={874}>
+          <IOSDevice keyboard><MobileMantenimiento /></IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="m-notif"  label="Centro de avisos"          width={402} height={874}>
+          <IOSDevice><MobileNotif /></IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      <DCPostIt top={-32} right={60} rotate={2} width={210}>
+        Rentas marcado como core — el 89% de la operación diaria del admin va a vivir aquí.
+        Las 3 vistas son la misma data, distintos focos.
+      </DCPostIt>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

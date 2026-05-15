@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { requireContext } from "@/server/auth/context";
 import { dbApp } from "@/server/db/scoped";
+import { listPortfolioOptions } from "@/server/portfolios/list";
 import { PropertyForm } from "@/components/property-form";
 
 export default async function NuevaPropiedadPage({
@@ -15,6 +17,8 @@ export default async function NuevaPropiedadPage({
   }>;
 }) {
   const sp = await searchParams;
+  const ctx = await requireContext();
+  const portfolios = await listPortfolioOptions(ctx);
 
   // Si viene predioId/coloniaId, traemos info del catastro para mostrarla en el form.
   let cartoCtx: {
@@ -110,8 +114,10 @@ export default async function NuevaPropiedadPage({
 
         <PropertyForm
           mode="create"
+          portfolios={portfolios}
           defaults={{
             name: "",
+            portfolioId: portfolios.length === 1 ? portfolios[0].id : "",
             type: "land",
             operationalStatus: "active",
             address: "",

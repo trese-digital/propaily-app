@@ -424,8 +424,8 @@ function LotePanel({
         <KV k="ÁREA" v={fmtArea(area)} />
         {dims ? (
           <>
-            <KV k="FRENTE / LARGO" v={`${dims.frente.toFixed(2)} m`} />
-            <KV k="FONDO / ANCHO" v={`${dims.fondo.toFixed(2)} m`} />
+            <KV k="FRENTE / ANCHO" v={`${dims.frente.toFixed(2)} m`} />
+            <KV k="FONDO / LARGO" v={`${dims.fondo.toFixed(2)} m`} />
             <KV k="PERÍMETRO" v={`${dims.perimetro.toFixed(2)} m`} />
           </>
         ) : null}

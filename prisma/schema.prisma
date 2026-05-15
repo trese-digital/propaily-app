@@ -52,6 +52,10 @@ model ManagementCompany {
   primaryColor String?
   accentColor  String?
   reportFooter String?
+  // GF Consultoría es la MC operadora de la plataforma: sus miembros con rol
+  // staff acceden al backoffice cross-tenant. Reemplaza el check por nombre
+  // literal "GF Consultoría" de is-gf-staff.ts (decisión C, S2).
+  isPlatformOperator Boolean  @default(false)
   status      EntityStatus @default(active)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -101,6 +105,11 @@ model Membership {
   id                  String     @id @default(uuid())
   userId              String
   managementCompanyId String
+  // clientId define el alcance del usuario dentro de la MC:
+  //   null  → operador (staff GF): ve toda la ManagementCompany.
+  //   set   → portal family office: el usuario ve SOLO ese Client.
+  // El scoping real lo enforza RLS vía la variable de sesión app.client_id.
+  clientId            String?
   role                Role
   status              UserStatus @default(active)
   createdAt           DateTime   @default(now())
@@ -108,9 +117,11 @@ model Membership {
 
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   managementCompany ManagementCompany @relation(fields: [managementCompanyId], references: [id], onDelete: Cascade)
+  client            Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
   @@unique([userId, managementCompanyId])
   @@index([managementCompanyId, role])
+  @@index([clientId])
 
   @@schema("propaily")
 }
@@ -137,6 +148,7 @@ model Client {
   documents         Document[]
   tasks             Task[]
   comments          Comment[]
+  memberships       Membership[]
 
   @@index([managementCompanyId, status])
 

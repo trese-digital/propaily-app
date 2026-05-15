@@ -8,7 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logout } from "@/app/(auth)/login/actions";
 import { vincularPropiedadConLote } from "@/server/properties/actions";
 
-import { AppRail, buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail";
+import { AppRail } from "@/components/app-rail";
+import { buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail-items";
 import type { AddonState } from "@/server/access/has-addon";
 import { Sidebar, type LayerCounts } from "./Sidebar";
 import { SearchBox } from "./SearchBox";

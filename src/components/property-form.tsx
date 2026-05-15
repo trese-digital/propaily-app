@@ -32,8 +32,11 @@ const OP_STATUS: Array<{ value: string; label: string }> = [
 
 const initial: PropertyFormState = {};
 
+export type PortfolioOption = { id: string; label: string };
+
 export type PropertyDefaults = {
   name: string;
+  portfolioId: string;
   type: string;
   operationalStatus: string;
   address: string;
@@ -54,10 +57,12 @@ export function PropertyForm({
   mode,
   propertyId,
   defaults,
+  portfolios,
 }: {
   mode: "create" | "edit";
   propertyId?: string;
   defaults: PropertyDefaults;
+  portfolios: PortfolioOption[];
 }) {
   // Bound action: en edit cierra el propertyId
   const action =
@@ -80,6 +85,33 @@ export function PropertyForm({
           className="input"
           autoFocus
         />
+      </Field>
+
+      <Field label="Portafolio *" error={state.fieldErrors?.portfolioId}>
+        {portfolios.length > 0 ? (
+          <select
+            name="portfolioId"
+            required
+            defaultValue={defaults.portfolioId}
+            className="input"
+          >
+            {!defaults.portfolioId && (
+              <option value="" disabled>
+                Selecciona un portafolio…
+              </option>
+            )}
+            {portfolios.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="text-slate text-sm">
+            No hay portafolios disponibles. Crea un cliente y un portafolio
+            antes de registrar propiedades.
+          </p>
+        )}
       </Field>
 
       <div className="grid grid-cols-2 gap-4">

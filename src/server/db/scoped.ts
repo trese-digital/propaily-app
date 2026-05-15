@@ -67,10 +67,55 @@ if (process.env.NODE_ENV !== "production") {
  */
 export async function withTenant<T>(
   managementCompanyId: string,
-  fn: (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<T>,
+  fn: (tx: ScopedTx) => Promise<T>,
 ): Promise<T> {
   return dbApp.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT set_config('app.management_company_id', ${managementCompanyId}, true)`;
     return fn(tx);
   });
+}
+
+type ScopedTx = Omit<
+  PrismaClient,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
+/**
+ * Como `withTenant`, pero además setea `app.client_id` — las queries quedan
+ * scopeadas a un Client específico (portal del family office, decisión S2).
+ * Las policies RLS añaden el filtro por Client sobre el de la MC.
+ */
+export async function withClientScope<T>(
+  managementCompanyId: string,
+  clientId: string,
+  fn: (tx: ScopedTx) => Promise<T>,
+): Promise<T> {
+  return dbApp.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.management_company_id', ${managementCompanyId}, true)`;
+    await tx.$executeRaw`SELECT set_config('app.client_id', ${clientId}, true)`;
+    return fn(tx);
+  });
+}
+
+/**
+ * Helper unificado: elige el scoping correcto según el `AppContext`.
+ *  - `clientId` set  → `withClientScope` (portal family office).
+ *  - `clientId` null → `withTenant` (operador GF, ve toda la MC).
+ *
+ * Recibe primitivas (no `AppContext`) para no crear dependencia circular con
+ * `server/auth/context`. Uso típico:
+ *
+ *   const ctx = await requireContext();
+ *   const rows = await withAppScope(
+ *     { managementCompanyId: ctx.membership.managementCompanyId, clientId: ctx.client?.id ?? null },
+ *     (tx) => tx.property.findMany(),
+ *   );
+ */
+export async function withAppScope<T>(
+  scope: { managementCompanyId: string; clientId: string | null },
+  fn: (tx: ScopedTx) => Promise<T>,
+): Promise<T> {
+  return scope.clientId
+    ? withClientScope(scope.managementCompanyId, scope.clientId, fn)
+    : withTenant(scope.managementCompanyId, fn);
 }

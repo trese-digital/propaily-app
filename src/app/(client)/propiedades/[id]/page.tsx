@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { withTenant } from "@/server/db/scoped";
-import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { appScope, requireContext } from "@/server/auth/context";
 import { DocumentsSection, type DocumentRow } from "./documents-section";
 import { CoverPhoto } from "./cover-photo";
 import { PhotoGallery, type PhotoRow } from "./photo-gallery";
@@ -47,7 +47,7 @@ export default async function PropiedadDetallePage({
   const ctx = await requireContext();
   const { id } = await params;
 
-  const p = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const p = await withAppScope(appScope(ctx), (tx) =>
     tx.property.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -82,8 +82,8 @@ export default async function PropiedadDetallePage({
   // El catastro (schema public) no tiene RLS — no requiere withTenant.
   // Pero el catastroId que viajamos ya viene de p, que SÍ pasó por RLS arriba,
   // así que esta query catastral es segura.
-  const { carto, documents, photos } = await withTenant(
-    ctx.membership.managementCompanyId,
+  const { carto, documents, photos } = await withAppScope(
+    appScope(ctx),
     async (tx) => {
       let carto: CartoRow | null = null;
       if (p.cartoColoniaId || p.cartoPredioId) {

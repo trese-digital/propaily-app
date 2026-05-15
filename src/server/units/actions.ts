@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { withTenant } from "@/server/db/scoped";
-import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { appScope, requireContext, type AppContext } from "@/server/auth/context";
 
 const UNIT_TYPES = [
   "apartment",
@@ -44,8 +44,8 @@ function readForm(formData: FormData) {
 
 export type UnitFormState = { error?: string; ok?: boolean; ts?: number };
 
-async function checkPropertyOwnership(propertyId: string, mcId: string) {
-  return withTenant(mcId, (tx) =>
+async function checkPropertyOwnership(propertyId: string, ctx: AppContext) {
+  return withAppScope(appScope(ctx), (tx) =>
     tx.property.findFirst({ where: { id: propertyId, deletedAt: null } }),
   );
 }
@@ -61,13 +61,10 @@ export async function crearUnidad(
   }
   const v = parsed.data;
 
-  const property = await checkPropertyOwnership(
-    v.propertyId,
-    ctx.membership.managementCompanyId,
-  );
+  const property = await checkPropertyOwnership(v.propertyId, ctx);
   if (!property) return { error: "Propiedad no encontrada" };
 
-  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  await withAppScope(appScope(ctx), (tx) =>
     tx.unit.create({
       data: {
         propertyId: property.id,
@@ -96,7 +93,7 @@ export async function editarUnidad(
 ): Promise<UnitFormState> {
   const ctx = await requireContext();
   // En edición no recibimos propertyId del form; lo resolvemos por unitId.
-  const existing = await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  const existing = await withAppScope(appScope(ctx), (tx) =>
     tx.unit.findFirst({ where: { id: unitId, deletedAt: null } }),
   );
   if (!existing) return { error: "Unidad no encontrada" };
@@ -110,7 +107,7 @@ export async function editarUnidad(
   }
   const v = parsed.data;
 
-  await withTenant(ctx.membership.managementCompanyId, (tx) =>
+  await withAppScope(appScope(ctx), (tx) =>
     tx.unit.update({
       where: { id: unitId },
       data: {
@@ -133,7 +130,7 @@ export async function eliminarUnidad(
   unitId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireContext();
-  const result = await withTenant(ctx.membership.managementCompanyId, async (tx) => {
+  const result = await withAppScope(appScope(ctx), async (tx) => {
     const unit = await tx.unit.findFirst({ where: { id: unitId, deletedAt: null } });
     if (!unit) return { error: "Unidad no encontrada" } as const;
     await tx.unit.update({

@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { logout } from "@/app/(auth)/login/actions";
-import { AppRail, buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail";
+import { AppRail } from "@/components/app-rail";
+import { buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail-items";
+import { Avatar, Button, Kbd, initialsFrom } from "@/components/ui";
 import type { AddonState } from "@/server/access/has-addon";
 
 export function AppShell({
@@ -17,12 +19,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const railItems = buildRailItems(addons);
-  const initials = (user.name ?? user.email)
-    .split(/\s+|@/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("") || "U";
+  const initials = initialsFrom(user.name ?? user.email);
 
   return (
     <div
@@ -104,19 +101,7 @@ function TopBar({
           <path d="m20 20-3.5-3.5" />
         </svg>
         <span className="flex-1">Buscar colonia, propiedad, folio…</span>
-        <kbd
-          className="mono"
-          style={{
-            fontSize: 10,
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--bg)",
-            border: "1px solid var(--border)",
-            color: "var(--fg-muted)",
-          }}
-        >
-          ⌘K
-        </kbd>
+        <Kbd>⌘K</Kbd>
       </div>
 
       <Link
@@ -138,38 +123,11 @@ function TopBar({
       </Link>
 
       <div className="flex items-center gap-2">
-        <span
-          className="flex items-center justify-center"
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 999,
-            background: "linear-gradient(135deg, var(--color-pp-400), var(--color-pp-700))",
-            color: "#fff",
-            font: "600 11px var(--font-sans)",
-          }}
-          aria-hidden
-        >
-          {initials}
-        </span>
+        <Avatar initials={initials} size={28} />
         <form action={logout}>
-          <button
-            type="submit"
-            className="cursor-pointer transition-colors"
-            style={{
-              height: 28,
-              padding: "0 10px",
-              borderRadius: 6,
-              background: "transparent",
-              color: "var(--fg-muted)",
-              border: "1px solid var(--border)",
-              font: "500 11px var(--font-mono)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
+          <Button type="submit" variant="secondary" size="sm">
             Salir
-          </button>
+          </Button>
         </form>
       </div>
     </header>

@@ -41,12 +41,19 @@ try {
         primaryColor: "#070B1F",
         accentColor: "#00B6D4",
         reportFooter: "GF Consultoría · León, Gto.",
+        // GF Consultoría es la MC operadora de la plataforma (S2).
+        isPlatformOperator: true,
         status: "active",
       },
     });
     console.log(`[OK] ManagementCompany creada: ${mc.id}`);
   } else {
-    console.log(`[OK] ManagementCompany ya existía: ${mc.id}`);
+    // Asegura el flag en instalaciones previas a S2.
+    mc = await db.managementCompany.update({
+      where: { id: mc.id },
+      data: { isPlatformOperator: true },
+    });
+    console.log(`[OK] ManagementCompany ya existía (isPlatformOperator=true): ${mc.id}`);
   }
 
   // Admin Membership

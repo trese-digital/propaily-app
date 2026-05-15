@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 
 import type { Prisma } from "@prisma/client";
 
-import { withTenant } from "@/server/db/scoped";
-import { requireContext } from "@/server/auth/context";
+import { withAppScope } from "@/server/db/scoped";
+import { appScope, requireContext } from "@/server/auth/context";
 import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
 
 import { FiltersBar } from "./filters-bar";
@@ -88,8 +88,8 @@ export default async function PropiedadesPage({
       : {}),
   };
 
-  const { ciudades, properties, totalUnfiltered } = await withTenant(
-    ctx.membership.managementCompanyId,
+  const { ciudades, properties, totalUnfiltered } = await withAppScope(
+    appScope(ctx),
     async (tx) => {
       const ciudadesRaw = await tx.property.findMany({
         where: { ...baseWhere, city: { not: null } },

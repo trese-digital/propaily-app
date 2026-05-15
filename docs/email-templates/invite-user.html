@@ -1,0 +1,125 @@
+<!--
+  Propaily · Supabase email — "Invite user"
+  Variante B (Hero). HTML email-safe: tablas + estilos inline.
+  El gradiente del hero se degrada a color sólido (#5A24E6) en Outlook.
+  Variables Supabase: {{ .ConfirmationURL }} · {{ .Data.name }} · {{ .Email }}
+  Pegar en: Supabase → Authentication → Email Templates → Invite user
+-->
+<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Te damos la bienvenida a Propaily</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F6F4FB;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F6F4FB;font-size:1px;line-height:1px;">
+    Te invitaron a Propaily. Activa tu cuenta para empezar.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6F4FB;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background-color:#ffffff;border:1px solid #E1DCEE;border-radius:16px;">
+
+          <!-- Hero (gradiente → sólido #5A24E6 en Outlook) -->
+          <tr>
+            <td bgcolor="#5A24E6" style="background-color:#5A24E6;background-image:linear-gradient(160deg,#4818B8 0%,#5A24E6 55%,#8E66FF 130%);padding:34px 40px 38px;border-radius:16px 16px 0 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:21px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">propaily</td>
+                  <td align="right" style="font-family:'Geist Mono',Consolas,monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#D1BFFF;">Cuenta activada</td>
+                </tr>
+              </table>
+              <h1 style="margin:30px 0 8px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:34px;line-height:1.08;font-weight:600;letter-spacing:-0.03em;color:#ffffff;">
+                Hola{{ if .Data.name }}, {{ .Data.name }}{{ end }}.
+              </h1>
+              <p style="margin:0;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#E8DFFF;">
+                Te damos la bienvenida a Propaily — tu portafolio inmobiliario, administrado en un solo lugar.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px 40px 32px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 22px;font-size:16px;line-height:1.55;color:#2D2738;">
+                El equipo de <strong style="color:#0E0A16;">GF Consultoría</strong> creó tu cuenta en Propaily.
+                Activa tu acceso para crear tu contraseña y entrar al portal.
+              </p>
+
+              <!-- CTA -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+                <tr>
+                  <td bgcolor="#6E3AFF" style="border-radius:10px;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Activar mi cuenta</a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Steps -->
+              <div style="font-family:'Geist Mono',Consolas,monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#6B6480;margin-bottom:6px;">Qué vas a encontrar</div>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #EEEAF6;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                      <td width="38" valign="top" style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#6E3AFF;">1</td>
+                      <td style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:14px;font-weight:500;color:#0E0A16;">Activa tu cuenta</div>
+                        <div style="font-size:13px;color:#6B6480;line-height:1.45;">Crea tu contraseña y entra al portal.</div>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #EEEAF6;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                      <td width="38" valign="top" style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#6E3AFF;">2</td>
+                      <td style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:14px;font-weight:500;color:#0E0A16;">Revisa tu portafolio</div>
+                        <div style="font-size:13px;color:#6B6480;line-height:1.45;">Propiedades, documentos y valuaciones que GF cargó por ti.</div>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #EEEAF6;border-bottom:1px solid #EEEAF6;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                      <td width="38" valign="top" style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#6E3AFF;">3</td>
+                      <td style="font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="font-size:14px;font-weight:500;color:#0E0A16;">Da seguimiento a rentas y pagos</div>
+                        <div style="font-size:13px;color:#6B6480;line-height:1.45;">Contratos, calendario de cobros y solicitudes de valuación.</div>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback link -->
+              <div style="margin-top:22px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#6B6480;margin-bottom:6px;">¿El botón no funciona? Copia y pega este enlace:</div>
+              <a href="{{ .ConfirmationURL }}" target="_blank" style="font-family:'Geist Mono',Consolas,monospace;font-size:12px;color:#5A24E6;word-break:break-all;">{{ .ConfirmationURL }}</a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:22px 40px 28px;background-color:#FBFAFE;border-top:1px solid #EEEAF6;border-radius:0 0 16px 16px;font-family:Geist,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-size:13px;font-weight:600;color:#2D2738;">Propaily</div>
+              <div style="font-size:12px;color:#6B6480;margin-top:2px;">Plataforma de administración inmobiliaria · GF Consultoría</div>
+              <div style="font-size:12px;color:#9890AC;margin-top:2px;">León, Guanajuato, México</div>
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid #EEEAF6;font-size:11px;color:#9890AC;line-height:1.5;">
+                Recibes este correo porque GF Consultoría te invitó a Propaily. Si no esperabas esta invitación, puedes ignorar este mensaje.
+              </div>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

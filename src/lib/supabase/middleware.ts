@@ -141,7 +141,9 @@ export async function updateSession(request: NextRequest) {
   if (area === "admin" && pathname === "/") effective = "/admin";
 
   // ── 3. Gating de sesión ───────────────────────────────────────────────────
-  const guarded = area === "app" || area === "admin" || area === "dev";
+  // Todo host salvo marketing exige sesión; además `/api/*` SIEMPRE pasa por
+  // el gate (defensa en profundidad sobre el check propio de cada handler).
+  const guarded = area !== "marketing" || pathname.startsWith("/api/");
   if (!user && guarded && !isPublic(effective)) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(

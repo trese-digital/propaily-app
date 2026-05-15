@@ -4,11 +4,17 @@
  * se reserva para `createAdminClient()` y NUNCA se manda al cliente.
  */
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+import { SESSION_COOKIE_DOMAIN, isProdHost } from "@/lib/domains";
 
 export async function createClient() {
   const cookieStore = await cookies();
+  // La cookie de sesión se comparte entre los tres subdominios de propaily.com
+  // (`Domain=.propaily.com`). En dev (localhost) NO se setea domain.
+  const host = (await headers()).get("host");
+  const cookieDomain = isProdHost(host) ? SESSION_COOKIE_DOMAIN : undefined;
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +27,10 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, {
+                ...options,
+                ...(cookieDomain ? { domain: cookieDomain } : {}),
+              });
             });
           } catch {
             // En Server Components puros, set() falla; el middleware se encarga

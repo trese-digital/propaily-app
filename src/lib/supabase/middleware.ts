@@ -1,32 +1,98 @@
 /**
- * Middleware helper: refresca la sesión de Supabase en cada request y
- * redirige a /login si la ruta requiere auth.
+ * Middleware: refresca la sesión de Supabase en cada request, aplica el ruteo
+ * por host (split de dominios) y protege las rutas que requieren sesión.
  *
- * Path-aware: `/admin/*` requiere sesión Y rol GF staff. La validación
- * de staff en sí vive en `src/app/admin/layout.tsx` (es Server Component
- * y tiene acceso a Prisma). Acá sólo evitamos que un usuario sin sesión
- * vea HTML cacheado.
+ * Ruteo por host (ver `lib/domains.ts`):
+ *   propaily.com        → marketing  · la raíz se reescribe a /welcome
+ *   app.propaily.com    → portal cliente · la raíz es el dashboard
+ *   admin.propaily.com  → backoffice GF · la raíz se reescribe a /admin
+ *   localhost / IP      → "dev": SIN ruteo por host, todo accesible por path
  *
- * Cuando DNS de admin.propaily.com apunte, basta con agregar rama por
- * `request.headers.get('host')` antes del check de path.
+ * Las rutas que no pertenecen al host se redirigen al subdominio correcto.
+ * `/login`, `/signup`, `/auth/*` y `/api/*` son compartidas (válidas en todos).
+ *
+ * La validación de rol (staff GF) NO vive aquí — está en `admin/layout.tsx`,
+ * que es Server Component y tiene acceso a Prisma. El middleware sólo cuida
+ * que un usuario sin sesión no vea HTML protegido.
  */
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/welcome", "/login", "/signup", "/auth/callback", "/auth/confirm", "/api/health"];
+import {
+  ADMIN_ORIGIN,
+  APP_ORIGIN,
+  MARKETING_ORIGIN,
+  SESSION_COOKIE_DOMAIN,
+  type HostArea,
+  type PathOwner,
+  isProdHost,
+  pathOwner,
+  resolveHostArea,
+} from "@/lib/domains";
+
+const PUBLIC_PATHS = [
+  "/welcome",
+  "/login",
+  "/signup",
+  "/auth/callback",
+  "/auth/confirm",
+  "/api/health",
+];
 
 function isPublic(pathname: string) {
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return true;
-  // Assets de Next y favicon
+  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`)))
+    return true;
   if (pathname.startsWith("/_next/") || pathname === "/favicon.ico") return true;
   return false;
 }
 
-function isAdminPath(pathname: string) {
-  return pathname === "/admin" || pathname.startsWith("/admin/");
+/**
+ * Destino cross-host: si el path no pertenece al host actual, devuelve la URL
+ * absoluta del subdominio correcto. `null` = el path se sirve en este host.
+ *
+ * La raíz "/" nunca se redirige (cada host la reescribe a su propia home).
+ */
+function crossHostTarget(
+  area: HostArea,
+  owner: PathOwner,
+  pathname: string,
+  search: string,
+): string | null {
+  const path = pathname + search;
+
+  // La autenticación vive en el portal, no en la web de marketing: un
+  // /login o /signup en propaily.com se manda a app.propaily.com.
+  if (area === "marketing" && (pathname === "/login" || pathname === "/signup")) {
+    return APP_ORIGIN + path;
+  }
+
+  if (owner === "shared" || pathname === "/") return null;
+
+  if (area === "marketing") {
+    if (owner === "app") return APP_ORIGIN + path;
+    if (owner === "admin") return ADMIN_ORIGIN + path;
+  }
+  if (area === "app") {
+    if (owner === "admin") return ADMIN_ORIGIN + path;
+    if (owner === "marketing") return MARKETING_ORIGIN + path;
+  }
+  if (area === "admin") {
+    if (owner === "app") return APP_ORIGIN + path;
+    if (owner === "marketing") return MARKETING_ORIGIN + path;
+  }
+  return null;
+}
+
+/** Copia las cookies de sesión refrescadas a una respuesta de redirect/rewrite. */
+function carryCookies(from: NextResponse, to: NextResponse): NextResponse {
+  from.cookies.getAll().forEach((c) => to.cookies.set(c));
+  return to;
 }
 
 export async function updateSession(request: NextRequest) {
+  const host = request.headers.get("host");
+  const cookieDomain = isProdHost(host) ? SESSION_COOKIE_DOMAIN : undefined;
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -42,8 +108,13 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value),
           );
           response = NextResponse.next({ request });
+          // La cookie de sesión se comparte entre los tres subdominios
+          // (`Domain=.propaily.com`) para que el login valga en los tres.
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
+            response.cookies.set(name, value, {
+              ...options,
+              ...(cookieDomain ? { domain: cookieDomain } : {}),
+            }),
           );
         },
       },
@@ -54,9 +125,24 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-  if (!user && !isPublic(pathname)) {
-    // API routes responden con 401 JSON en lugar de redirigir.
+  const area = resolveHostArea(host);
+  const { pathname, search } = request.nextUrl;
+  const owner = pathOwner(pathname);
+
+  // ── 1. Ruteo por host: redirigir lo que no pertenece a este host ──────────
+  if (area !== "dev") {
+    const target = crossHostTarget(area, owner, pathname, search);
+    if (target) return carryCookies(response, NextResponse.redirect(target));
+  }
+
+  // ── 2. Path efectivo: la raíz de marketing/admin se reescribe ─────────────
+  let effective = pathname;
+  if (area === "marketing" && pathname === "/") effective = "/welcome";
+  if (area === "admin" && pathname === "/") effective = "/admin";
+
+  // ── 3. Gating de sesión ───────────────────────────────────────────────────
+  const guarded = area === "app" || area === "admin" || area === "dev";
+  if (!user && guarded && !isPublic(effective)) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: { code: "UNAUTHORIZED", message: "Sesión requerida" } },
@@ -64,21 +150,27 @@ export async function updateSession(request: NextRequest) {
       );
     }
     const url = request.nextUrl.clone();
-    // Visitantes que aterricen en "/" ven el landing público;
-    // cualquier otra ruta protegida los manda al login.
-    if (pathname === "/") {
-      url.pathname = "/welcome";
-    } else {
-      url.pathname = "/login";
-      url.searchParams.set("from", pathname);
+    url.pathname = "/login";
+    url.search = "";
+    if (effective !== "/" && effective !== "/login") {
+      url.searchParams.set("from", effective);
     }
-    return NextResponse.redirect(url);
+    return carryCookies(response, NextResponse.redirect(url));
   }
-  if (user && (pathname === "/login" || pathname === "/signup")) {
+
+  // Usuario ya logueado que cae en login/signup → a la home de su host.
+  if (user && (effective === "/login" || effective === "/signup")) {
     const url = request.nextUrl.clone();
-    // Si venían intentando entrar a /admin, los regresamos a /admin.
-    url.pathname = isAdminPath(request.nextUrl.searchParams.get("from") ?? "/") ? "/admin" : "/";
-    return NextResponse.redirect(url);
+    url.search = "";
+    url.pathname = area === "admin" ? "/admin" : "/";
+    return carryCookies(response, NextResponse.redirect(url));
+  }
+
+  // ── 4. Aplicar rewrite de raíz si corresponde ─────────────────────────────
+  if (effective !== pathname) {
+    const url = request.nextUrl.clone();
+    url.pathname = effective;
+    return carryCookies(response, NextResponse.rewrite(url, { request }));
   }
 
   return response;

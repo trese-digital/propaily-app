@@ -5,6 +5,12 @@
 // hizo. `APP_VERSION` siempre toma la entrada más reciente. Así queda el orden.
 export const CHANGELOG = [
   {
+    version: "1.4",
+    date: "2026-05-15",
+    summary:
+      "Split de dominios — app.propaily.com (portal) y admin.propaily.com (backoffice)",
+  },
+  {
     version: "1.3",
     date: "2026-05-15",
     summary: "S6 — Valuaciones + gestión de usuarios y permisos (cierra Bloque 1)",

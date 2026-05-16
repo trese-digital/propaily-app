@@ -8,14 +8,14 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { login, type LoginState } from "@/app/(auth)/login/actions";
 import { PropailyMark } from "@/components/mobile/mark";
 import { TurnstileWidget } from "@/components/turnstile";
+import { mobileLogin, type MobileLoginState } from "./actions";
 
-const initialState: LoginState = {};
+const initialState: MobileLoginState = {};
 
 export default function MobileLoginScreen() {
-  const [state, formAction, pending] = useActionState(login, initialState);
+  const [state, formAction, pending] = useActionState(mobileLogin, initialState);
 
   return (
     <div

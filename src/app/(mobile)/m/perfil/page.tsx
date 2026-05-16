@@ -2,7 +2,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 
-import { logout } from "@/app/(auth)/login/actions";
+import { mobileLogout } from "@/app/(mobile)/m/login/actions";
 import {
   IcBell,
   IcBuilding,
@@ -172,7 +172,7 @@ export default function ProfileScreen() {
       </MSection>
 
       <div style={{ padding: "14px 18px 4px" }}>
-        <form action={logout}>
+        <form action={mobileLogout}>
           <button
             type="submit"
             style={{

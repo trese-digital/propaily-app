@@ -142,6 +142,32 @@ export async function updateSession(request: NextRequest) {
     if (target) return carryCookies(response, NextResponse.redirect(target));
   }
 
+  // ── 1.5 Entrada móvil: los teléfonos entran a la PWA `/m` ─────────────────
+  // En el portal (`app`) y en dev, un user-agent móvil que llega a la raíz o
+  // al login de escritorio se manda a `/m` — así el icono de la PWA instalada
+  // (`start_url:"/"`) y la URL escrita abren la app móvil, no el escritorio.
+  // Solo redirige los puntos de entrada; el resto del escritorio sigue
+  // accesible por URL directa.
+  const ua = request.headers.get("user-agent") ?? "";
+  const isMobileUA = /Android|iPhone|iPod|iPad|Mobile|Windows Phone/i.test(ua);
+  if (
+    request.method === "GET" &&
+    (area === "app" || area === "dev") &&
+    isMobileUA &&
+    !pathname.startsWith("/m")
+  ) {
+    let mobileTarget: string | null = null;
+    if (pathname === "/") mobileTarget = user ? "/m/inicio" : "/m";
+    else if (pathname === "/login" || pathname === "/signup")
+      mobileTarget = user ? "/m/inicio" : "/m/login";
+    if (mobileTarget) {
+      const url = request.nextUrl.clone();
+      url.pathname = mobileTarget;
+      url.search = "";
+      return carryCookies(response, NextResponse.redirect(url));
+    }
+  }
+
   // ── 2. Path efectivo: la raíz de marketing/admin se reescribe ─────────────
   let effective = pathname;
   if (area === "marketing" && pathname === "/") effective = "/welcome";

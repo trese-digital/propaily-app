@@ -20,7 +20,13 @@ export async function GET(request: Request) {
   const errorDescription = url.searchParams.get("error_description");
   const next = url.searchParams.get("next") || "/";
 
-  const loginUrl = new URL("/login", url.origin);
+  // Detrás del proxy (Caddy), `request.url` trae el host interno (0.0.0.0:3001).
+  // El origen público se reconstruye desde los headers reenviados.
+  const host = request.headers.get("host") ?? url.host;
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const origin = `${proto}://${host}`;
+
+  const loginUrl = new URL("/login", origin);
 
   // El enlace caducó o es inválido (Supabase devuelve el error en el query).
   if (errorCode || errorDescription) {
@@ -39,7 +45,7 @@ export async function GET(request: Request) {
     if (!error) {
       // `next` solo puede ser una ruta interna — nunca un origen externo.
       const dest = next.startsWith("/") ? next : "/";
-      return NextResponse.redirect(new URL(dest, url.origin));
+      return NextResponse.redirect(new URL(dest, origin));
     }
     loginUrl.searchParams.set(
       "error",

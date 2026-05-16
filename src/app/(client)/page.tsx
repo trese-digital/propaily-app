@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { IcArrowUR, IcBuilding, IcMap, IcPlus, IcSpark } from "@/components/icons";
+import { IcArrowUR, IcBuilding, IcCheck, IcMap, IcPlus } from "@/components/icons";
 import { PortfolioMap, type MapPin } from "@/components/portfolio-map";
 import { Badge, type BadgeTone, Card, CardHeader, Kpi } from "@/components/ui";
 import { appScope, requireContext } from "@/server/auth/context";
@@ -53,6 +53,9 @@ function statusTone(status: string): BadgeTone {
 export default async function HomePage() {
   const ctx = await requireContext();
 
+  const now = new Date();
+  const in60Days = new Date(now.getTime() + 60 * 86_400_000);
+
   // RLS scopea por MC (+ Client si es family office). Los `where` no lo mencionan.
   const data = await withAppScope(appScope(ctx), async (tx) => {
     const [
@@ -63,6 +66,9 @@ export default async function HomePage() {
       valueAgg,
       rentAgg,
       pinRows,
+      overduePaymentCount,
+      expiringLeaseCount,
+      openValuationCount,
     ] = await Promise.all([
       tx.property.count({ where: { deletedAt: null } }),
       tx.portfolio.count({ where: { deletedAt: null } }),
@@ -99,6 +105,19 @@ export default async function HomePage() {
         select: { id: true, name: true, latitude: true, longitude: true },
         take: 200,
       }),
+      tx.rentPayment.count({
+        where: { deletedAt: null, status: "pending", dueDate: { lt: now } },
+      }),
+      tx.lease.count({
+        where: {
+          deletedAt: null,
+          status: "active",
+          endDate: { gte: now, lte: in60Days },
+        },
+      }),
+      tx.valuationRequest.count({
+        where: { status: { in: ["pending", "in_progress"] } },
+      }),
     ]);
     return {
       propertyCount,
@@ -108,6 +127,9 @@ export default async function HomePage() {
       valueAgg,
       rentAgg,
       pinRows,
+      overduePaymentCount,
+      expiringLeaseCount,
+      openValuationCount,
     };
   });
 
@@ -132,6 +154,45 @@ export default async function HomePage() {
   const pPlural = data.propertyCount === 1 ? "" : "es";
   const portfolioWord =
     data.portfolioCount === 1 ? "portafolio" : "portafolios";
+
+  type PendingTone = "bad" | "warn" | "info";
+  type PendingItem = {
+    href: string;
+    count: number;
+    label: string;
+    tone: PendingTone;
+  };
+  const pendingItems: PendingItem[] = [];
+  if (data.overduePaymentCount > 0) {
+    pendingItems.push({
+      href: "/rentas/calendario",
+      count: data.overduePaymentCount,
+      label: data.overduePaymentCount === 1 ? "pago vencido" : "pagos vencidos",
+      tone: "bad",
+    });
+  }
+  if (data.expiringLeaseCount > 0) {
+    pendingItems.push({
+      href: "/rentas",
+      count: data.expiringLeaseCount,
+      label:
+        data.expiringLeaseCount === 1
+          ? "contrato vence pronto"
+          : "contratos vencen pronto",
+      tone: "warn",
+    });
+  }
+  if (data.openValuationCount > 0) {
+    pendingItems.push({
+      href: "/valuaciones",
+      count: data.openValuationCount,
+      label:
+        data.openValuationCount === 1
+          ? "solicitud de avalúo abierta"
+          : "solicitudes de avalúo abiertas",
+      tone: "info",
+    });
+  }
 
   return (
     <section className="mx-auto flex max-w-[1280px] flex-col gap-6 px-8 py-7">
@@ -230,16 +291,22 @@ export default async function HomePage() {
               hint="León, Gto · catastro"
             />
           </div>
-          <div className="mt-auto m-3 flex flex-col gap-1.5 rounded-lg border border-pp-200 bg-pp-50 p-3.5">
-            <div className="flex items-center gap-2">
-              <IcSpark size={14} style={{ color: "var(--color-pp-600)" }} />
-              <span className="mono text-[11px] uppercase tracking-[0.1em] text-pp-700">
-                Insights · próximamente
-              </span>
-            </div>
-            <p className="text-xs leading-relaxed text-pp-700/85">
-              Comparativos de rendimiento por colonia y servicios cercanos.
-            </p>
+          <div className="mt-auto m-3 flex flex-col gap-1.5">
+            <span className="mono px-1 text-[10px] uppercase tracking-[0.12em] text-ink-500">
+              Requiere atención
+            </span>
+            {pendingItems.length === 0 ? (
+              <div className="flex items-center gap-2 rounded-lg border border-ink-100 bg-[var(--bg-muted)] px-3 py-2.5">
+                <IcCheck size={14} style={{ color: "var(--color-ok)" }} />
+                <span className="text-xs text-ink-600">
+                  Todo al día. Sin pendientes.
+                </span>
+              </div>
+            ) : (
+              pendingItems.map((item) => (
+                <PendingRow key={item.href} {...item} />
+              ))
+            )}
           </div>
         </Card>
       </div>
@@ -315,6 +382,43 @@ function QuickLink({
         <span className="block text-[11px] text-ink-500">{hint}</span>
       </span>
       <IcArrowUR size={14} style={{ color: "var(--color-ink-400)" }} />
+    </Link>
+  );
+}
+
+const PENDING_TONE: Record<
+  "bad" | "warn" | "info",
+  { chip: string; text: string }
+> = {
+  bad: { chip: "bg-bad text-white", text: "text-bad" },
+  warn: { chip: "bg-warn text-white", text: "text-warn" },
+  info: { chip: "bg-info text-white", text: "text-ink-700" },
+};
+
+function PendingRow({
+  href,
+  count,
+  label,
+  tone,
+}: {
+  href: string;
+  count: number;
+  label: string;
+  tone: "bad" | "warn" | "info";
+}) {
+  const t = PENDING_TONE[tone];
+  return (
+    <Link
+      href={href as never}
+      className="flex items-center gap-2.5 rounded-lg border border-ink-100 bg-white px-3 py-2 transition-colors hover:border-pp-300 hover:bg-pp-50"
+    >
+      <span
+        className={`mono num flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold ${t.chip}`}
+      >
+        {count}
+      </span>
+      <span className="flex-1 text-[12px] text-ink-700">{label}</span>
+      <IcArrowUR size={13} style={{ color: "var(--color-ink-400)" }} />
     </Link>
   );
 }

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { logout } from "@/app/(auth)/login/actions";
 import { AppRail } from "@/components/app-rail";
 import { buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail-items";
-import { Avatar, Button, Kbd, initialsFrom } from "@/components/ui";
+import { Avatar, Button, initialsFrom } from "@/components/ui";
 import { APP_VERSION } from "@/lib/version";
 import type { AddonState } from "@/server/access/has-addon";
 
@@ -86,8 +86,9 @@ function TopBar({
 
       <div className="flex-1" />
 
-      <div
-        className="hidden items-center gap-2 px-3 md:flex"
+      <Link
+        href="/propiedades"
+        className="hidden items-center gap-2 px-3 transition-colors md:flex hover:border-(--color-pp-300)"
         style={{
           height: 34,
           minWidth: 320,
@@ -102,9 +103,8 @@ function TopBar({
           <circle cx="11" cy="11" r="7" />
           <path d="m20 20-3.5-3.5" />
         </svg>
-        <span className="flex-1">Buscar colonia, propiedad, folio…</span>
-        <Kbd>⌘K</Kbd>
-      </div>
+        <span className="flex-1">Buscar en propiedades…</span>
+      </Link>
 
       <Link
         href="/propiedades/nueva"

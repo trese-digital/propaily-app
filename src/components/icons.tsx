@@ -104,6 +104,29 @@ export const IcPlus = (p: IconProps) => (
     <path d="M12 5v14M5 12h14" />
   </Ic>
 );
+export const IcAlert = (p: IconProps) => (
+  <Ic {...p}>
+    <path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0Z" />
+    <path d="M12 9v4M12 17h.01" />
+  </Ic>
+);
+export const IcWrench = (p: IconProps) => (
+  <Ic {...p}>
+    <path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L3 18l3 3 6.5-6.5a4 4 0 0 0 5.2-5.2l-2.8 2.8-2.7-2.7 2.8-2.8Z" />
+  </Ic>
+);
+export const IcClock = (p: IconProps) => (
+  <Ic {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 3" />
+  </Ic>
+);
+export const IcCard = (p: IconProps) => (
+  <Ic {...p}>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <path d="M2 10h20" />
+  </Ic>
+);
 export const IcFilter = (p: IconProps) => (
   <Ic {...p}>
     <path d="M3 5h18l-7 9v5l-4 2v-7L3 5Z" />

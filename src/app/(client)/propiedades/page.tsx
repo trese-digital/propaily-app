@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 
 import type { Prisma } from "@prisma/client";
 
+import { IcBuilding, IcPhoto, IcPlus } from "@/components/icons";
+import { Badge, type BadgeTone, Card, EmptyState } from "@/components/ui";
 import { withAppScope } from "@/server/db/scoped";
 import { appScope, requireContext } from "@/server/auth/context";
 import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
@@ -33,15 +35,16 @@ const STATUS_LABEL: Record<string, string> = {
   inactive: "Inactiva",
 };
 
-const STATUS_TONE: Record<string, { bg: string; fg: string; dot: string }> = {
-  active: { bg: "rgba(16,185,129,0.12)", fg: "#065F46", dot: "var(--color-ok)" },
-  rented: { bg: "rgba(16,185,129,0.12)", fg: "#065F46", dot: "var(--color-ok)" },
-  available: { bg: "rgba(59,130,246,0.12)", fg: "#1E40AF", dot: "var(--color-info)" },
-  for_sale: { bg: "rgba(245,158,11,0.14)", fg: "#92400E", dot: "var(--color-warn)" },
-  under_construction: { bg: "rgba(245,158,11,0.14)", fg: "#92400E", dot: "var(--color-warn)" },
-  maintenance: { bg: "rgba(245,158,11,0.14)", fg: "#92400E", dot: "var(--color-warn)" },
-  reserved: { bg: "var(--accent-soft)", fg: "var(--color-pp-700)", dot: "var(--color-pp-500)" },
-  inactive: { bg: "var(--bg-subtle)", fg: "var(--fg-muted)", dot: "var(--color-ink-400)" },
+/** Estatus operativo → tono del Badge compartido (mismo lenguaje que el resto del portal). */
+const STATUS_TONE: Record<string, BadgeTone> = {
+  active: "ok",
+  rented: "ok",
+  available: "info",
+  for_sale: "warn",
+  under_construction: "warn",
+  maintenance: "warn",
+  reserved: "violet",
+  inactive: "neutral",
 };
 
 const VALID_TYPES = new Set(Object.keys(TYPE_LABEL));
@@ -66,7 +69,8 @@ export default async function PropiedadesPage({
   const sp = await searchParams;
   const cookieStore = await cookies();
 
-  const view: PropertyView = cookieStore.get(VIEW_COOKIE)?.value === "list" ? "list" : "grid";
+  const view: PropertyView =
+    cookieStore.get(VIEW_COOKIE)?.value === "list" ? "list" : "grid";
 
   const ciudadFilter = sp.ciudad?.trim() || "";
   const tipoFilter = sp.tipo && VALID_TYPES.has(sp.tipo) ? sp.tipo : "";
@@ -115,7 +119,9 @@ export default async function PropiedadesPage({
 
   const coverUrls = await Promise.all(
     properties.map((p) =>
-      p.coverPhotoStorageKey ? getPropertyCoverUrl(p.coverPhotoStorageKey) : Promise.resolve(null),
+      p.coverPhotoStorageKey
+        ? getPropertyCoverUrl(p.coverPhotoStorageKey)
+        : Promise.resolve(null),
     ),
   );
 
@@ -123,50 +129,27 @@ export default async function PropiedadesPage({
   const isFiltered = !!(ciudadFilter || tipoFilter || estadoFilter);
 
   return (
-    <section style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 32px 56px" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 28 }}>
+    <section className="mx-auto flex max-w-[1280px] flex-col gap-6 px-8 py-7">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <span className="mono-label">{ctx.membership.managementCompanyName}</span>
-          <h1
-            style={{
-              margin: "8px 0 6px",
-              font: "600 28px/1.1 var(--font-sans)",
-              letterSpacing: "-0.025em",
-              color: "var(--fg)",
-            }}
-          >
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.025em]">
             Propiedades
           </h1>
-          <p style={{ margin: 0, color: "var(--fg-muted)", fontSize: 14 }}>
-            {isFiltered ? `${filtered} de ${totalUnfiltered}` : `${totalUnfiltered} en total`}
+          <p className="mt-1 text-sm text-[var(--fg-muted)]">
+            {isFiltered
+              ? `${filtered} de ${totalUnfiltered}`
+              : `${totalUnfiltered} en total`}
           </p>
         </div>
         <Link
           href="/propiedades/nueva"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: "var(--accent)",
-            color: "#fff",
-            padding: "0 16px",
-            height: 36,
-            borderRadius: 8,
-            fontFamily: "var(--font-sans)",
-            fontSize: 13,
-            fontWeight: 500,
-            border: `1px solid var(--accent)`,
-            boxShadow: "var(--shadow-sm)",
-            transition: "background var(--dur-fast) var(--ease)",
-          }}
-          className="hover:bg-(--accent-hover)"
+          className="inline-flex h-10 items-center gap-2 rounded-lg bg-pp-500 px-4 text-sm font-medium text-white shadow-[0_1px_2px_rgba(27,8,83,0.2)] transition-colors hover:bg-pp-600"
         >
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <IcPlus size={16} />
           Nueva propiedad
         </Link>
-      </div>
+      </header>
 
       <FiltersBar
         ciudades={ciudades}
@@ -176,12 +159,22 @@ export default async function PropiedadesPage({
       />
 
       {totalUnfiltered === 0 ? (
-        <EmptyState />
+        <EmptyState
+          icon={IcBuilding}
+          title="Aún no hay propiedades"
+          description="Registra la primera propiedad, desde cero o a partir de un lote del catastro."
+          accent
+        />
       ) : properties.length === 0 ? (
-        <NoMatchState />
+        <EmptyState
+          icon={IcBuilding}
+          tone="warn"
+          title="Sin coincidencias"
+          description="Ninguna propiedad coincide con esos filtros. Ajusta o límpialos."
+        />
       ) : (
         <>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <div className="flex justify-end">
             <ViewToggle view={view} />
           </div>
           {view === "grid" ? (
@@ -199,113 +192,62 @@ type PropertyRow = Prisma.PropertyGetPayload<{
   include: { portfolio: { include: { client: true } } };
 }>;
 
-function StatusBadge({ status }: { status: string }) {
-  const tone = STATUS_TONE[status] ?? STATUS_TONE.inactive;
+function GridView({
+  properties,
+  coverUrls,
+}: {
+  properties: PropertyRow[];
+  coverUrls: (string | null)[];
+}) {
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: tone.bg,
-        color: tone.fg,
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-        whiteSpace: "nowrap",
-      }}
-    >
-      <span style={{ width: 5, height: 5, borderRadius: 999, background: tone.dot }} />
-      {STATUS_LABEL[status] ?? status}
-    </span>
-  );
-}
-
-function GridView({ properties, coverUrls }: { properties: PropertyRow[]; coverUrls: (string | null)[] }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-        gap: 16,
-      }}
-    >
+    <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
       {properties.map((p, i) => {
         const url = coverUrls[i];
         return (
-          <Link
-            key={p.id}
-            href={`/propiedades/${p.id}` as never}
-            style={{
-              background: "var(--bg)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              transition: "border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)",
-            }}
-            className="group hover:border-(--color-pp-300) hover:shadow-md"
-          >
-            <div style={{ aspectRatio: "16/10", background: "var(--bg-subtle)", position: "relative", overflow: "hidden" }}>
-              {url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={url}
-                  alt={p.name}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  className="group-hover:scale-[1.02] transition-transform"
-                />
-              ) : (
-                <PlaceholderArt name={p.name} />
-              )}
-            </div>
-            <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
-              <div>
-                <span className="mono-label">
-                  {(TYPE_LABEL[p.type] ?? p.type).toLowerCase()} · {p.portfolio.client.name}
-                </span>
-                <h3
-                  style={{
-                    margin: "6px 0 0",
-                    font: "500 16px var(--font-sans)",
-                    color: "var(--fg)",
-                    letterSpacing: "-0.01em",
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {p.name}
-                </h3>
-                {p.address && (
-                  <p
-                    style={{
-                      margin: "4px 0 0",
-                      fontSize: 12,
-                      color: "var(--fg-muted)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {p.address}
-                  </p>
+          <Link key={p.id} href={`/propiedades/${p.id}` as never} className="group">
+            <Card className="flex h-full flex-col overflow-hidden transition-all group-hover:border-pp-300 group-hover:shadow-[var(--shadow-md)]">
+              <div className="relative aspect-[16/10] overflow-hidden bg-[var(--bg-subtle)]">
+                {url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={url}
+                    alt={p.name}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <PlaceholderArt name={p.name} />
                 )}
               </div>
-              <div style={{ marginTop: "auto", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8 }}>
+              <div className="flex flex-1 flex-col gap-2.5 p-4">
                 <div>
-                  <span className="mono-label" style={{ fontSize: 10 }}>
-                    Valor fiscal
+                  <span className="mono-label">
+                    {(TYPE_LABEL[p.type] ?? p.type).toLowerCase()} ·{" "}
+                    {p.portfolio.client.name}
                   </span>
-                  <div className="num" style={{ font: "600 18px var(--font-sans)", color: "var(--fg)", letterSpacing: "-0.01em", marginTop: 2 }}>
-                    {fmtMoneyCents(p.fiscalValueCents)}
-                  </div>
+                  <h3 className="mt-1.5 text-[16px] font-medium leading-tight tracking-[-0.01em] text-ink-900">
+                    {p.name}
+                  </h3>
+                  {p.address && (
+                    <p className="mt-1 truncate text-xs text-[var(--fg-muted)]">
+                      {p.address}
+                    </p>
+                  )}
                 </div>
-                <StatusBadge status={p.operationalStatus} />
+                <div className="mt-auto flex items-end justify-between gap-2">
+                  <div>
+                    <span className="mono text-[10px] uppercase tracking-[0.1em] text-ink-500">
+                      Valor fiscal
+                    </span>
+                    <div className="num mt-0.5 text-[18px] font-semibold tracking-[-0.01em] text-ink-900">
+                      {fmtMoneyCents(p.fiscalValueCents)}
+                    </div>
+                  </div>
+                  <Badge tone={STATUS_TONE[p.operationalStatus] ?? "neutral"}>
+                    {STATUS_LABEL[p.operationalStatus] ?? p.operationalStatus}
+                  </Badge>
+                </div>
               </div>
-            </div>
+            </Card>
           </Link>
         );
       })}
@@ -313,35 +255,26 @@ function GridView({ properties, coverUrls }: { properties: PropertyRow[]; coverU
   );
 }
 
-function ListView({ properties, coverUrls }: { properties: PropertyRow[]; coverUrls: (string | null)[] }) {
+function ListView({
+  properties,
+  coverUrls,
+}: {
+  properties: PropertyRow[];
+  coverUrls: (string | null)[];
+}) {
+  const cols =
+    "grid grid-cols-[64px_minmax(0,2.5fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-4";
   return (
-    <div
-      style={{
-        background: "var(--bg)",
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        overflow: "hidden",
-      }}
-    >
+    <Card className="overflow-hidden">
       <div
-        className="mono-label"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "64px minmax(0,2.5fr) minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",
-          gap: 16,
-          alignItems: "center",
-          padding: "10px 16px",
-          background: "var(--bg-muted)",
-          borderBottom: "1px solid var(--border)",
-          fontSize: 10,
-        }}
+        className={`${cols} mono-label border-b border-ink-100 bg-[var(--bg-muted)] px-4 py-2.5`}
       >
-        <span></span>
+        <span />
         <span>Nombre</span>
         <span>Cliente · Tipo</span>
         <span>Ciudad</span>
         <span>Estatus</span>
-        <span style={{ textAlign: "right" }}>Valor fiscal</span>
+        <span className="text-right">Valor fiscal</span>
       </div>
       {properties.map((p, i) => {
         const url = coverUrls[i];
@@ -349,150 +282,60 @@ function ListView({ properties, coverUrls }: { properties: PropertyRow[]; coverU
           <Link
             key={p.id}
             href={`/propiedades/${p.id}` as never}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "64px minmax(0,2.5fr) minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",
-              gap: 16,
-              alignItems: "center",
-              padding: "12px 16px",
-              borderTop: i === 0 ? "none" : "1px solid var(--border)",
-              transition: "background var(--dur-fast) var(--ease)",
-              color: "var(--fg)",
-            }}
-            className="hover:bg-(--bg-muted)"
+            className={`${cols} px-4 py-3 text-ink-900 transition-colors hover:bg-[var(--bg-muted)] ${
+              i === 0 ? "" : "border-t border-ink-100"
+            }`}
           >
-            <div
-              style={{
-                width: 56,
-                height: 42,
-                borderRadius: 6,
-                background: "var(--bg-subtle)",
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--fg-subtle)",
-              }}
-            >
+            <div className="flex h-[42px] w-14 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-subtle)] text-[var(--fg-subtle)]">
               {url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={url} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img
+                  src={url}
+                  alt={p.name}
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <PlaceholderIcon size={14} />
+                <IcPhoto size={14} />
               )}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ margin: 0, font: "500 14px var(--font-sans)", color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div className="min-w-0">
+              <p className="truncate text-[14px] font-medium text-ink-900">
                 {p.name}
               </p>
               {p.address && (
-                <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--fg-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p className="mt-0.5 truncate text-[11px] text-[var(--fg-muted)]">
                   {p.address}
                 </p>
               )}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div className="min-w-0">
+              <p className="truncate text-xs text-ink-900">
                 {p.portfolio.client.name}
               </p>
-              <p className="mono-label" style={{ marginTop: 2, fontSize: 10 }}>
-                {TYPE_LABEL[p.type] ?? p.type}
-              </p>
+              <p className="mono-label mt-0.5">{TYPE_LABEL[p.type] ?? p.type}</p>
             </div>
-            <p style={{ margin: 0, fontSize: 12, color: "var(--fg-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p className="truncate text-xs text-[var(--fg-muted)]">
               {p.city ?? "—"}
             </p>
-            <StatusBadge status={p.operationalStatus} />
-            <p className="num" style={{ margin: 0, font: "500 13px var(--font-sans)", color: "var(--fg)", textAlign: "right" }}>
+            <div>
+              <Badge tone={STATUS_TONE[p.operationalStatus] ?? "neutral"}>
+                {STATUS_LABEL[p.operationalStatus] ?? p.operationalStatus}
+              </Badge>
+            </div>
+            <p className="num text-right text-[13px] font-medium text-ink-900">
               {fmtMoneyCents(p.fiscalValueCents)}
             </p>
           </Link>
         );
       })}
-    </div>
+    </Card>
   );
 }
 
 function PlaceholderArt({ name }: { name: string }) {
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        background: "linear-gradient(135deg, var(--color-pp-100) 0%, var(--color-ink-100) 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--color-pp-700)",
-        font: "500 13px var(--font-sans)",
-      }}
-    >
+    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-pp-100 to-ink-100 px-3 text-center text-[13px] font-medium text-pp-700">
       {name.slice(0, 24)}
-    </div>
-  );
-}
-
-function PlaceholderIcon({ size }: { size: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="8.5" cy="8.5" r="1.5" />
-      <polyline points="21 15 16 10 5 21" />
-    </svg>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div
-      style={{
-        background: "var(--bg)",
-        border: "1px dashed var(--border-strong)",
-        borderRadius: 12,
-        padding: 48,
-        textAlign: "center",
-      }}
-    >
-      <p style={{ color: "var(--fg-muted)", margin: "0 0 16px", fontSize: 14 }}>
-        No hay propiedades cargadas todavía.
-      </p>
-      <Link
-        href="/propiedades/nueva"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: "var(--accent)",
-          color: "#fff",
-          padding: "0 16px",
-          height: 36,
-          borderRadius: 8,
-          fontFamily: "var(--font-sans)",
-          fontSize: 13,
-          fontWeight: 500,
-          border: `1px solid var(--accent)`,
-        }}
-      >
-        Crear la primera
-      </Link>
-    </div>
-  );
-}
-
-function NoMatchState() {
-  return (
-    <div
-      style={{
-        background: "var(--bg)",
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        padding: 40,
-        textAlign: "center",
-      }}
-    >
-      <p style={{ color: "var(--fg-muted)", margin: 0, fontSize: 14 }}>
-        Ninguna propiedad coincide con esos filtros.
-      </p>
     </div>
   );
 }

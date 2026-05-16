@@ -3,6 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
+import { IcChevD } from "@/components/icons";
+import { cn } from "@/lib/cn";
+
 const TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "", label: "Todos los tipos" },
   { value: "house", label: "Casa habitación" },
@@ -67,40 +70,34 @@ export function FiltersBar({
 
   return (
     <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 24,
-        opacity: pending ? 0.6 : 1,
-        transition: "opacity var(--dur-fast) var(--ease)",
-      }}
+      className={cn(
+        "flex flex-wrap items-center gap-2 transition-opacity",
+        pending && "opacity-60",
+      )}
     >
-      <Select
+      <FilterSelect
         value={selectedCity}
         onChange={(v) => update("ciudad", v)}
-        options={[{ value: "", label: "Cualquier ciudad" }, ...ciudades.map((c) => ({ value: c, label: c }))]}
+        options={[
+          { value: "", label: "Cualquier ciudad" },
+          ...ciudades.map((c) => ({ value: c, label: c })),
+        ]}
       />
-      <Select value={selectedType} onChange={(v) => update("tipo", v)} options={TYPE_OPTIONS} />
-      <Select value={selectedStatus} onChange={(v) => update("estado", v)} options={STATUS_OPTIONS} />
+      <FilterSelect
+        value={selectedType}
+        onChange={(v) => update("tipo", v)}
+        options={TYPE_OPTIONS}
+      />
+      <FilterSelect
+        value={selectedStatus}
+        onChange={(v) => update("estado", v)}
+        options={STATUS_OPTIONS}
+      />
       {hasAny && (
         <button
           type="button"
           onClick={clearAll}
-          className="mono"
-          style={{
-            fontSize: 11,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: "var(--fg-muted)",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            padding: "6px 8px",
-            textDecoration: "underline",
-            textUnderlineOffset: 3,
-          }}
+          className="mono cursor-pointer px-2 py-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--fg-muted)] underline underline-offset-[3px] transition-colors hover:text-ink-800"
         >
           Limpiar filtros
         </button>
@@ -109,7 +106,7 @@ export function FiltersBar({
   );
 }
 
-function Select({
+function FilterSelect({
   value,
   onChange,
   options,
@@ -120,34 +117,27 @@ function Select({
 }) {
   const active = !!value;
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        background: active ? "var(--accent-soft)" : "var(--bg)",
-        border: `1px solid ${active ? "var(--color-pp-300)" : "var(--border)"}`,
-        color: active ? "var(--color-pp-700)" : "var(--fg)",
-        borderRadius: 999,
-        fontSize: 13,
-        padding: "6px 14px",
-        height: 32,
-        cursor: "pointer",
-        minWidth: 160,
-        fontFamily: "var(--font-sans)",
-        outline: "none",
-        appearance: "none",
-        paddingRight: 30,
-        backgroundImage:
-          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12' fill='none' stroke='%239890ac' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "right 10px center",
-      }}
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          "h-8 min-w-[160px] cursor-pointer appearance-none rounded-full border py-1.5 pl-3.5 pr-8 text-[13px] outline-none transition-colors",
+          active
+            ? "border-pp-300 bg-pp-50 text-pp-700"
+            : "border-ink-200 bg-white text-ink-900 hover:border-ink-300",
+        )}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <IcChevD
+        size={12}
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-400"
+      />
+    </div>
   );
 }

@@ -1,20 +1,23 @@
-/** 08 · Home del propietario (MobileHome del handoff). */
+/** 08 · Home del propietario — datos reales (Fase 2a). */
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { IcBell, IcChevR } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
 import { Avatar, Badge, MSection } from "@/components/mobile/ui";
-import {
-  approvals,
-  demoUser,
-  portfolio,
-  properties,
-  upcomingPayments,
-} from "@/features/mobile/demo-data";
+import { getOwnerHome, resolveMobileRole } from "@/server/mobile/data";
 
 export const metadata = { title: "Inicio · Propaily" };
 
-export default function OwnerHomeScreen() {
+export default async function OwnerHomeScreen() {
+  const { ctx, role } = await resolveMobileRole();
+  if (role === "operator") redirect("/m/admin");
+
+  const { portfolio, properties, upcomingPayments, approvalCount } =
+    await getOwnerHome(ctx);
+  const account = ctx.client?.name ?? ctx.membership.managementCompanyName;
+  const firstName = ctx.user.name?.split(" ")[0] ?? "Hola";
+
   return (
     <div
       style={{
@@ -39,8 +42,8 @@ export default function OwnerHomeScreen() {
             marginBottom: 14,
           }}
         >
-          <Avatar name={demoUser.name} size={36} tone="warn" />
-          <div style={{ flex: 1 }}>
+          <Avatar name={ctx.user.name ?? account} size={36} tone="warn" />
+          <div style={{ flex: 1, minWidth: 0 }}>
             <span
               className="mono"
               style={{
@@ -50,17 +53,13 @@ export default function OwnerHomeScreen() {
                 textTransform: "uppercase",
               }}
             >
-              {demoUser.account}
+              {account}
             </span>
             <div style={{ font: "600 16px var(--font-sans)" }}>
-              Buenos días, {demoUser.name.split(" ")[0]}
+              Hola, {firstName}
             </div>
           </div>
-          <Link
-            href="/m/avisos"
-            aria-label="Avisos"
-            style={iconBtnStyle}
-          >
+          <Link href="/m/avisos" aria-label="Avisos" style={iconBtnStyle}>
             <IcBell size={16} />
           </Link>
         </div>
@@ -99,9 +98,9 @@ export default function OwnerHomeScreen() {
               {portfolio.patrimonio}
             </div>
             <div
-              style={{ fontSize: 10, color: "var(--ok)", fontWeight: 600, marginTop: 1 }}
+              style={{ fontSize: 10, color: "var(--ink-500)", marginTop: 1 }}
             >
-              ↗ {portfolio.patrimonioDelta}
+              {portfolio.patrimonioDelta}
             </div>
           </div>
           <div
@@ -142,66 +141,88 @@ export default function OwnerHomeScreen() {
       </div>
 
       {/* Alerta de aprobaciones */}
-      <MSection gap={10} style={{ padding: "14px 18px 8px" }}>
-        <Link
-          href="/m/aprobar"
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-            padding: 12,
-            background: "#FFFBEB",
-            borderRadius: 12,
-            border: "1px solid #FDE68A",
-          }}
-        >
-          <span
+      {approvalCount > 0 && (
+        <MSection gap={10} style={{ padding: "14px 18px 8px" }}>
+          <Link
+            href="/m/aprobar"
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "var(--warn)",
-              color: "#fff",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flex: "0 0 auto",
-              fontWeight: 700,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              padding: 12,
+              background: "#FFFBEB",
+              borderRadius: 12,
+              border: "1px solid #FDE68A",
             }}
           >
-            !
-          </span>
-          <div style={{ flex: 1 }}>
-            <div style={{ font: "600 13px var(--font-sans)", color: "#92400E" }}>
-              {approvals.length} cosas necesitan tu aprobación
-            </div>
-            <div
+            <span
               style={{
-                fontSize: 12,
-                color: "#92400E",
-                opacity: 0.85,
-                marginTop: 2,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--warn)",
+                color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flex: "0 0 auto",
+                fontWeight: 700,
               }}
             >
-              Propuesta de renovación · avalúo BBVA
+              !
+            </span>
+            <div style={{ flex: 1 }}>
+              <div
+                style={{ font: "600 13px var(--font-sans)", color: "#92400E" }}
+              >
+                {approvalCount} cosa{approvalCount === 1 ? "" : "s"} necesita
+                {approvalCount === 1 ? "" : "n"} tu atención
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#92400E",
+                  opacity: 0.85,
+                  marginTop: 2,
+                }}
+              >
+                Renovaciones y solicitudes de avalúo
+              </div>
             </div>
-          </div>
-          <IcChevR size={16} style={{ color: "#92400E", alignSelf: "center" }} />
-        </Link>
-      </MSection>
+            <IcChevR size={16} style={{ color: "#92400E", alignSelf: "center" }} />
+          </Link>
+        </MSection>
+      )}
 
       {/* Propiedades */}
       <MSection
         title={`Tus propiedades · ${properties.length}`}
         action={
-          <span
-            style={{ fontSize: 12, color: "var(--pp-600)", fontWeight: 600 }}
-          >
-            Ver todas
-          </span>
+          properties.length > 3 ? (
+            <span
+              style={{ fontSize: 12, color: "var(--pp-600)", fontWeight: 600 }}
+            >
+              Ver todas
+            </span>
+          ) : undefined
         }
       >
-        {properties.slice(0, 3).map((p) => (
+        {properties.length === 0 && (
+          <div
+            style={{
+              padding: 20,
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid var(--ink-100)",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--ink-500)",
+            }}
+          >
+            Aún no tienes propiedades registradas.
+          </div>
+        )}
+        {properties.slice(0, 6).map((p) => (
           <Link
             key={p.id}
             href={`/m/propiedad/${p.id}`}
@@ -244,10 +265,7 @@ export default function OwnerHomeScreen() {
                   marginTop: 4,
                 }}
               >
-                <span
-                  className="num"
-                  style={{ fontSize: 13, fontWeight: 600 }}
-                >
+                <span className="num" style={{ fontSize: 13, fontWeight: 600 }}>
                   {p.value}
                 </span>
                 <Badge tone={p.statusTone}>{p.status}</Badge>
@@ -260,68 +278,81 @@ export default function OwnerHomeScreen() {
 
       {/* Próximos pagos */}
       <MSection title="Próximos pagos · 30 días">
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 12,
-            border: "1px solid var(--ink-100)",
-            overflow: "hidden",
-          }}
-        >
-          {upcomingPayments.map((r, i) => (
-            <div
-              key={r.tenant}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "12px 14px",
-                borderTop: i > 0 ? "1px solid var(--ink-100)" : "none",
-              }}
-            >
-              <Avatar name={r.tenant} size={28} tone={r.tone} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    font: "500 13px var(--font-sans)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {r.tenant}
+        {upcomingPayments.length === 0 ? (
+          <div
+            style={{
+              padding: 20,
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid var(--ink-100)",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--ink-500)",
+            }}
+          >
+            Sin pagos próximos en los siguientes 30 días.
+          </div>
+        ) : (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid var(--ink-100)",
+              overflow: "hidden",
+            }}
+          >
+            {upcomingPayments.map((r, i) => (
+              <div
+                key={`${r.tenant}-${i}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "12px 14px",
+                  borderTop: i > 0 ? "1px solid var(--ink-100)" : "none",
+                }}
+              >
+                <Avatar name={r.tenant} size={28} tone={r.tone} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      font: "500 13px var(--font-sans)",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {r.tenant}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{ fontSize: 10, color: "var(--ink-500)" }}
+                  >
+                    {r.property}
+                  </div>
                 </div>
-                <div
-                  className="mono"
-                  style={{ fontSize: 10, color: "var(--ink-500)" }}
-                >
-                  {r.property}
+                <div style={{ textAlign: "right" }}>
+                  <div className="num" style={{ fontSize: 13, fontWeight: 600 }}>
+                    {r.amount}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 10,
+                      color:
+                        r.status === "vencido"
+                          ? "var(--bad)"
+                          : "var(--ink-500)",
+                    }}
+                  >
+                    {r.date}
+                  </div>
                 </div>
+                <Badge tone={r.tone}>{r.status}</Badge>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div
-                  className="num"
-                  style={{ fontSize: 13, fontWeight: 600 }}
-                >
-                  {r.amount}
-                </div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 10,
-                    color:
-                      r.status === "vencido"
-                        ? "var(--bad)"
-                        : "var(--ink-500)",
-                  }}
-                >
-                  {r.date}
-                </div>
-              </div>
-              <Badge tone={r.tone}>{r.status}</Badge>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </MSection>
 
       <MTabBar active={0} />

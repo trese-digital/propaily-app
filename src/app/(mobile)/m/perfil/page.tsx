@@ -1,17 +1,12 @@
-/** 21 · Perfil & cambio de rol (MFlowPerfil del handoff). */
-import type { Route } from "next";
-import Link from "next/link";
-
+/** 21 · Perfil — datos reales (Fase 2a). */
 import { mobileLogout } from "@/app/(mobile)/m/login/actions";
 import {
   IcBell,
   IcBuilding,
   IcChart,
-  IcCheck,
   IcChevR,
   IcDoc,
   IcDownload,
-  IcKey,
   IcSettings,
   IcShield,
   IcSpark,
@@ -19,22 +14,15 @@ import {
 } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
 import { Avatar, Dot, MCard, MSection } from "@/components/mobile/ui";
-import { demoUser, roles, type Role } from "@/features/mobile/demo-data";
+import { resolveMobileRole } from "@/server/mobile/data";
 import { APP_VERSION } from "@/lib/version";
 
 export const metadata = { title: "Perfil · Propaily" };
 
-const ROLE_ICON = { owner: IcChart, tenant: IcKey, admin: IcBuilding } as const;
-const ROLE_HOME: Record<Role, Route> = {
-  owner: "/m/inicio",
-  tenant: "/m/pago",
-  admin: "/m/admin",
-};
-
 const ACCOUNT_ITEMS = [
   [IcUsers, "Información personal", null],
-  [IcBell, "Notificaciones", "Push · email · WhatsApp"],
-  [IcShield, "Seguridad", "Face ID activo"],
+  [IcBell, "Notificaciones", "Push · email"],
+  [IcShield, "Seguridad", "Contraseña"],
   [IcDownload, "Datos y privacidad", null],
 ] as const;
 
@@ -44,7 +32,12 @@ const APP_ITEMS = [
   [IcDoc, "Términos y privacidad", null],
 ] as const;
 
-export default function ProfileScreen() {
+export default async function ProfileScreen() {
+  const { ctx, role } = await resolveMobileRole();
+  const account = ctx.client?.name ?? ctx.membership.managementCompanyName;
+  const roleLabel = role === "operator" ? "Operador GFC" : "Propietario";
+  const RoleIcon = role === "operator" ? IcBuilding : IcChart;
+
   return (
     <div
       style={{
@@ -61,7 +54,7 @@ export default function ProfileScreen() {
           textAlign: "center",
         }}
       >
-        <Avatar name={demoUser.name} size={72} tone="warn" />
+        <Avatar name={ctx.user.name ?? account} size={72} tone="warn" />
         <h1
           style={{
             margin: "12px 0 2px",
@@ -69,10 +62,10 @@ export default function ProfileScreen() {
             letterSpacing: "-0.015em",
           }}
         >
-          {demoUser.name}
+          {ctx.user.name ?? "Usuario"}
         </h1>
         <div className="mono" style={{ fontSize: 11, color: "var(--ink-500)" }}>
-          {demoUser.email}
+          {ctx.user.email}
         </div>
         <div
           style={{
@@ -89,76 +82,60 @@ export default function ProfileScreen() {
           <span
             style={{ fontSize: 11, color: "var(--pp-700)", fontWeight: 600 }}
           >
-            Viendo como · Propietario
+            {roleLabel}
           </span>
         </div>
       </div>
 
-      {/* Cambiar de rol */}
-      <MSection title="Cambiar de rol" style={{ paddingTop: 14 }}>
-        <MCard style={{ padding: 0 }}>
-          {roles.map((r, i) => {
-            const Icon = ROLE_ICON[r.id];
-            const active = r.id === "owner";
-            return (
-              <Link
-                key={r.id}
-                href={ROLE_HOME[r.id]}
+      {/* Cuenta activa */}
+      <MSection title="Tu cuenta" style={{ paddingTop: 14 }}>
+        <MCard>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "var(--pp-500)",
+                color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flex: "0 0 auto",
+              }}
+            >
+              <RoleIcon size={19} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "14px 14px",
-                  borderTop: i > 0 ? "1px solid var(--ink-100)" : "none",
-                  background: active ? "var(--pp-50)" : "#fff",
+                  font: "600 14px var(--font-sans)",
+                  color: "var(--ink-900)",
                 }}
               >
-                <span
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 9,
-                    background: active ? "var(--pp-500)" : "var(--ink-50)",
-                    color: active ? "#fff" : "var(--ink-600)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flex: "0 0 auto",
-                  }}
-                >
-                  <Icon size={17} />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      font: "600 13px var(--font-sans)",
-                      color: active ? "var(--pp-700)" : "var(--ink-900)",
-                    }}
-                  >
-                    {r.name}
-                  </div>
-                  <div
-                    className="mono"
-                    style={{ fontSize: 10, color: "var(--ink-500)" }}
-                  >
-                    {r.detail}
-                  </div>
-                </div>
-                {active ? (
-                  <IcCheck size={16} style={{ color: "var(--pp-600)" }} />
-                ) : (
-                  <IcChevR size={14} style={{ color: "var(--ink-400)" }} />
-                )}
-              </Link>
-            );
-          })}
+                {account}
+              </div>
+              <div
+                className="mono"
+                style={{ fontSize: 10, color: "var(--ink-500)" }}
+              >
+                {ctx.membership.managementCompanyName} · {roleLabel}
+              </div>
+            </div>
+          </div>
         </MCard>
       </MSection>
 
       <MSection title="Cuenta">
         <MCard style={{ padding: 0 }}>
           {ACCOUNT_ITEMS.map(([Icon, name, detail], i) => (
-            <SettingRow key={name} Icon={Icon} name={name} detail={detail} first={i === 0} />
+            <SettingRow
+              key={name}
+              Icon={Icon}
+              name={name}
+              detail={detail}
+              first={i === 0}
+            />
           ))}
         </MCard>
       </MSection>
@@ -166,7 +143,13 @@ export default function ProfileScreen() {
       <MSection title="App">
         <MCard style={{ padding: 0 }}>
           {APP_ITEMS.map(([Icon, name, detail], i) => (
-            <SettingRow key={name} Icon={Icon} name={name} detail={detail} first={i === 0} />
+            <SettingRow
+              key={name}
+              Icon={Icon}
+              name={name}
+              detail={detail}
+              first={i === 0}
+            />
           ))}
         </MCard>
       </MSection>
@@ -193,7 +176,11 @@ export default function ProfileScreen() {
       <div style={{ padding: "6px 18px 0", textAlign: "center" }}>
         <span
           className="mono"
-          style={{ fontSize: 9, color: "var(--ink-400)", letterSpacing: "0.1em" }}
+          style={{
+            fontSize: 9,
+            color: "var(--ink-400)",
+            letterSpacing: "0.1em",
+          }}
         >
           propaily v{APP_VERSION} · móvil
         </span>

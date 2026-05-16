@@ -1,5 +1,6 @@
-/** 09 · Detalle de propiedad (MobilePropDetalle del handoff). */
+/** 09 · Detalle de propiedad — datos reales (Fase 2a). */
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { IcArrowR, IcCheck, IcMap, IcMore } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
@@ -11,7 +12,7 @@ import {
   MSection,
   MetricMini,
 } from "@/components/mobile/ui";
-import { properties, propertyDetail } from "@/features/mobile/demo-data";
+import { getPropertyDetailData, resolveMobileRole } from "@/server/mobile/data";
 
 export default async function PropertyDetailScreen({
   params,
@@ -19,8 +20,9 @@ export default async function PropertyDetailScreen({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const property = properties.find((p) => p.id === id) ?? properties[0];
-  const d = propertyDetail;
+  const { ctx } = await resolveMobileRole();
+  const d = await getPropertyDetailData(ctx, id);
+  if (!d) notFound();
 
   return (
     <div
@@ -68,7 +70,7 @@ export default async function PropertyDetailScreen({
             color: "#fff",
           }}
         >
-          <Badge tone="ok">{d.status}</Badge>
+          <Badge tone={d.statusTone}>{d.status}</Badge>
           <h1
             style={{
               margin: "8px 0 4px",
@@ -77,7 +79,7 @@ export default async function PropertyDetailScreen({
               textShadow: "0 2px 8px rgba(0,0,0,0.4)",
             }}
           >
-            {property.name}
+            {d.name}
           </h1>
           <div
             className="mono"
@@ -122,14 +124,13 @@ export default async function PropertyDetailScreen({
         }}
       >
         <Chip active>Resumen</Chip>
-        <Chip>Documentos · 12</Chip>
-        <Chip>Avalúos · 7</Chip>
+        <Chip>Documentos</Chip>
+        <Chip>Avalúos</Chip>
         <Chip>Inquilino</Chip>
-        <Chip>Histórico</Chip>
       </div>
 
       {/* Catastro */}
-      <MSection title="Catastro · León">
+      <MSection title="Catastro">
         <MCard accent>
           <div
             style={{
@@ -155,41 +156,38 @@ export default async function PropertyDetailScreen({
             </span>
             <div style={{ flex: 1 }}>
               <div style={{ font: "600 13px var(--font-sans)" }}>
-                Lote vinculado
+                {d.catastro.linked ? "Lote vinculado" : "Sin lote vinculado"}
               </div>
               <div
                 className="mono"
                 style={{ fontSize: 10, color: "var(--ink-500)" }}
               >
-                {d.catastro.lote}
+                {d.catastro.linked
+                  ? "Predio del catastro de León"
+                  : "Esta propiedad no está ligada al catastro"}
               </div>
             </div>
-            <Badge tone="ok">
-              <IcCheck size={9} />
-            </Badge>
-          </div>
-          <div
-            className="pp-img-ph"
-            style={{ height: 90, borderRadius: 8 }}
-          >
-            Mapa catastral
+            {d.catastro.linked && (
+              <Badge tone="ok">
+                <IcCheck size={9} />
+              </Badge>
+            )}
           </div>
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: 6,
-              marginTop: 10,
             }}
           >
             <MetricMini
-              label="Fiscal"
+              label="Valor fiscal"
               value={d.catastro.fiscal}
               mono
               small
             />
             <MetricMini
-              label="Comercial /m²"
+              label="Comercial"
               value={d.catastro.comercialM2}
               mono
               small
@@ -201,62 +199,33 @@ export default async function PropertyDetailScreen({
       {/* Inquilino */}
       <MSection title="Inquilino actual">
         <MCard>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Avatar name={d.tenant.name} size={44} tone="violet" />
-            <div style={{ flex: 1 }}>
-              <div style={{ font: "600 14px var(--font-sans)" }}>
-                {d.tenant.name}
-              </div>
-              <div
-                className="mono"
-                style={{ fontSize: 11, color: "var(--ink-500)" }}
-              >
-                {d.tenant.since}
+          {d.tenant ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Avatar name={d.tenant.name} size={44} tone="violet" />
+              <div style={{ flex: 1 }}>
+                <div style={{ font: "600 14px var(--font-sans)" }}>
+                  {d.tenant.name}
+                </div>
+                <div
+                  className="mono"
+                  style={{ fontSize: 11, color: "var(--ink-500)" }}
+                >
+                  {d.tenant.since}
+                </div>
               </div>
             </div>
-          </div>
-          <div
-            style={{
-              height: 1,
-              background: "var(--ink-100)",
-              margin: "12px -2px",
-            }}
-          />
-          <Link
-            href="/m/aprobar/renovacion/renovacion-sofia"
-            style={{
-              padding: 10,
-              background: "#FFFBEB",
-              borderRadius: 8,
-              border: "1px solid #FDE68A",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span
+          ) : (
+            <div
               style={{
-                width: 20,
-                height: 20,
-                borderRadius: 999,
-                background: "var(--warn)",
-                color: "#fff",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                fontWeight: 700,
+                fontSize: 13,
+                color: "var(--ink-500)",
+                textAlign: "center",
+                padding: "8px 0",
               }}
             >
-              !
-            </span>
-            <span style={{ flex: 1, fontSize: 12, color: "#92400E" }}>
-              {d.tenant.contractWarning}
-            </span>
-            <span style={{ fontSize: 11, color: "#92400E", fontWeight: 600 }}>
-              Renovar →
-            </span>
-          </Link>
+              Esta propiedad no tiene un contrato activo.
+            </div>
+          )}
         </MCard>
       </MSection>
 

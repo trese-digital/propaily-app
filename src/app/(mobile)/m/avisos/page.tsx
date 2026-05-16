@@ -1,22 +1,17 @@
-/** 19 · Avisos · lista (MobileNotif del handoff). */
+/** 19 · Avisos · lista — datos reales (Fase 2a). */
 import Link from "next/link";
 
 import { IcCheck, IcSettings } from "@/components/icons";
 import { MNotif } from "@/components/mobile/notif";
 import { MTabBar } from "@/components/mobile/nav";
 import { Chip, MSection } from "@/components/mobile/ui";
-import {
-  notificationsToday,
-  notificationsYesterday,
-} from "@/features/mobile/demo-data";
+import { getNotificationsData, resolveMobileRole } from "@/server/mobile/data";
 
 export const metadata = { title: "Avisos · Propaily" };
 
-export default function NotificationsScreen() {
-  const total = notificationsToday.length + notificationsYesterday.length;
-  const unread = [...notificationsToday, ...notificationsYesterday].filter(
-    (n) => !n.read,
-  ).length;
+export default async function NotificationsScreen() {
+  const { ctx } = await resolveMobileRole();
+  const { today, earlier, total, unread } = await getNotificationsData(ctx);
 
   return (
     <div
@@ -61,26 +56,46 @@ export default function NotificationsScreen() {
         <div style={{ display: "flex", gap: 6, overflowX: "auto" }}>
           <Chip active>Todos · {total}</Chip>
           <Chip>No leídos · {unread}</Chip>
-          <Chip>Pagos</Chip>
-          <Chip>Tareas</Chip>
         </div>
       </div>
 
-      <MSection title="Hoy">
-        {notificationsToday.map((n) => (
-          <Link key={n.id} href={`/m/avisos/${n.id}`}>
-            <MNotif n={n} />
-          </Link>
-        ))}
-      </MSection>
+      {total === 0 && (
+        <div style={{ padding: "40px 32px", textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "var(--ink-700)",
+              marginBottom: 4,
+            }}
+          >
+            Sin avisos
+          </div>
+          <div style={{ fontSize: 13, color: "var(--ink-500)" }}>
+            Aquí verás renovaciones, pagos, avalúos y tareas.
+          </div>
+        </div>
+      )}
 
-      <MSection title="Ayer">
-        {notificationsYesterday.map((n) => (
-          <Link key={n.id} href={`/m/avisos/${n.id}`}>
-            <MNotif n={n} />
-          </Link>
-        ))}
-      </MSection>
+      {today.length > 0 && (
+        <MSection title="Hoy">
+          {today.map((n) => (
+            <Link key={n.id} href={`/m/avisos/${n.id}`}>
+              <MNotif n={n} />
+            </Link>
+          ))}
+        </MSection>
+      )}
+
+      {earlier.length > 0 && (
+        <MSection title="Anteriores">
+          {earlier.map((n) => (
+            <Link key={n.id} href={`/m/avisos/${n.id}`}>
+              <MNotif n={n} />
+            </Link>
+          ))}
+        </MSection>
+      )}
 
       <MTabBar active={3} />
     </div>

@@ -1,12 +1,19 @@
-/** 18 · Cobranza del operador (MFlowAdminCobranza del handoff). */
+/** 18 · Cobranza del operador — datos reales (Fase 2a). */
 import { MTabBar } from "@/components/mobile/nav";
 import { Avatar, Chip, Progress } from "@/components/mobile/ui";
-import { collections } from "@/features/mobile/demo-data";
+import { getCollectionsData, resolveMobileRole } from "@/server/mobile/data";
 
 export const metadata = { title: "Cobranza · Propaily" };
 
-export default function CollectionsScreen() {
-  const c = collections;
+const monthFmt = new Intl.DateTimeFormat("es-MX", {
+  month: "long",
+  year: "numeric",
+});
+
+export default async function CollectionsScreen() {
+  const { ctx } = await resolveMobileRole();
+  const c = await getCollectionsData(ctx);
+
   return (
     <div
       style={{
@@ -41,7 +48,7 @@ export default function CollectionsScreen() {
             marginTop: 4,
           }}
         >
-          {c.monthLabel}
+          {monthFmt.format(new Date())} · {c.monthLabel}
         </div>
 
         <div style={{ marginTop: 14 }}>
@@ -54,8 +61,7 @@ export default function CollectionsScreen() {
           />
           <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
             <Chip active>Vencidos · {c.overdue.length}</Chip>
-            <Chip>Esta sem.</Chip>
-            <Chip>Pagados · 19</Chip>
+            <Chip>Este mes</Chip>
           </div>
         </div>
       </div>
@@ -83,9 +89,25 @@ export default function CollectionsScreen() {
           gap: 8,
         }}
       >
-        {c.overdue.map((row) => (
+        {c.overdue.length === 0 && (
           <div
-            key={row.name}
+            style={{
+              padding: 28,
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid var(--ink-100)",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--ink-500)",
+            }}
+          >
+            Sin rentas vencidas. Cobranza al día. ✅
+          </div>
+        )}
+
+        {c.overdue.map((row, i) => (
+          <div
+            key={`${row.name}-${i}`}
             style={{
               padding: 14,
               background: "#fff",
@@ -132,23 +154,6 @@ export default function CollectionsScreen() {
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <a
-                href={`tel:${row.tel.replace(/\s/g, "")}`}
-                style={actionBtn(false)}
-              >
-                Llamar
-              </a>
-              <a
-                href={`https://wa.me/52${row.tel.replace(/\s/g, "")}`}
-                style={actionBtn(false)}
-              >
-                WhatsApp
-              </a>
-              <button type="button" style={actionBtn(true)}>
-                Marcar pago
-              </button>
-            </div>
           </div>
         ))}
       </div>
@@ -156,20 +161,4 @@ export default function CollectionsScreen() {
       <MTabBar active={2} />
     </div>
   );
-}
-
-function actionBtn(primary: boolean): React.CSSProperties {
-  return {
-    flex: 1,
-    padding: "8px 0",
-    borderRadius: 8,
-    border: primary ? "none" : "1px solid var(--ink-200)",
-    background: primary ? "var(--pp-500)" : "#fff",
-    color: primary ? "#fff" : "var(--ink-700)",
-    font: `${primary ? 600 : 500} 12px var(--font-sans)`,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center",
-  };
 }

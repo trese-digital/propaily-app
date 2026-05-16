@@ -1,29 +1,26 @@
-/** 17 · Home del operador GFC · hoy en campo (MFlowAdminHome del handoff). */
+/** 17 · Home del operador GFC — datos reales (Fase 2a). */
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import {
-  IcArrowR,
-  IcBell,
-  IcBuilding,
-  IcKey,
-  IcSettings,
-  IcUsers,
-} from "@/components/icons";
+import { IcBell, IcKey, IcSettings } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
-import { Avatar, MCard, MSection } from "@/components/mobile/ui";
-import { adminToday } from "@/features/mobile/demo-data";
+import { Avatar, MSection } from "@/components/mobile/ui";
+import { getOperatorToday, resolveMobileRole } from "@/server/mobile/data";
 
 export const metadata = { title: "Hoy · Propaily Operador" };
 
-const QUICK = [
-  [IcBuilding, "Propiedades"],
-  [IcUsers, "Clientes"],
-  [IcKey, "Rentas"],
-  [IcSettings, "Manten."],
-] as const;
+const dateFmt = new Intl.DateTimeFormat("es-MX", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
 
-export default function AdminHomeScreen() {
-  const a = adminToday;
+export default async function AdminHomeScreen() {
+  const { ctx, role } = await resolveMobileRole();
+  if (role === "owner") redirect("/m/inicio");
+
+  const a = await getOperatorToday(ctx);
+
   return (
     <div
       style={{
@@ -49,7 +46,7 @@ export default function AdminHomeScreen() {
           }}
         >
           <Avatar name={a.operator} size={36} tone="warn" />
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <span
               className="mono"
               style={{
@@ -59,7 +56,7 @@ export default function AdminHomeScreen() {
                 textTransform: "uppercase",
               }}
             >
-              GFC · Operador
+              {a.company} · Operador
             </span>
             <div style={{ font: "600 16px var(--font-sans)" }}>
               Hola, {a.operator.split(" ")[0]}
@@ -73,7 +70,7 @@ export default function AdminHomeScreen() {
         {/* Resumen del día */}
         <div
           style={{
-            padding: 12,
+            padding: 14,
             background: "var(--ink-900)",
             borderRadius: 12,
             color: "#fff",
@@ -102,7 +99,7 @@ export default function AdminHomeScreen() {
               fontWeight: 600,
             }}
           >
-            {a.dateLabel}
+            Hoy · {dateFmt.format(new Date())}
           </div>
           <div
             style={{
@@ -112,98 +109,103 @@ export default function AdminHomeScreen() {
               position: "relative",
             }}
           >
-            {a.summary}
+            {a.counts.tasks} tarea{a.counts.tasks === 1 ? "" : "s"} ·{" "}
+            {a.counts.maintenance} mantenimiento
           </div>
           <div style={{ marginTop: 10, display: "flex", gap: 6 }}>
-            {a.chips.map((c) => (
-              <span
-                key={c.label}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  background: c.urgent
-                    ? "rgba(245,158,11,0.30)"
+            <span
+              style={{
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.15)",
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            >
+              {a.counts.maintenance} mantenimiento
+            </span>
+            <span
+              style={{
+                padding: "4px 10px",
+                borderRadius: 999,
+                background:
+                  a.counts.overdue > 0
+                    ? "rgba(239,68,68,0.30)"
                     : "rgba(255,255,255,0.15)",
-                  color: c.urgent ? "#FCD34D" : "#fff",
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}
-              >
-                {c.label}
-              </span>
-            ))}
+                color: a.counts.overdue > 0 ? "#FCA5A5" : "#fff",
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            >
+              {a.counts.overdue} cobro{a.counts.overdue === 1 ? "" : "s"} vencido
+              {a.counts.overdue === 1 ? "" : "s"}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Ruta */}
-      <MSection title="Tu ruta · 4 paradas">
-        <MCard style={{ padding: 0 }}>
-          <div
-            className="pp-img-ph"
-            style={{ height: 140, borderRadius: 0, position: "relative" }}
-          >
-            Ruta del día
-            <span
-              style={{
-                position: "absolute",
-                bottom: 8,
-                right: 8,
-                padding: "4px 8px",
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.92)",
-                fontSize: 10,
-                fontWeight: 600,
-                color: "var(--ink-700)",
-              }}
-            >
-              {a.route.distance}
-            </span>
-          </div>
-          <div
+      {/* Cobranza acceso */}
+      <MSection title="Cobranza">
+        <Link
+          href="/m/cobranza"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: 14,
+            background: "#fff",
+            borderRadius: 12,
+            border: "1px solid var(--ink-100)",
+          }}
+        >
+          <span
             style={{
-              padding: "10px 14px",
-              display: "flex",
+              width: 38,
+              height: 38,
+              borderRadius: 9,
+              background: "var(--pp-50)",
+              color: "var(--pp-600)",
+              display: "inline-flex",
               alignItems: "center",
-              gap: 8,
+              justifyContent: "center",
             }}
           >
-            <span
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 999,
-                background: "var(--pp-500)",
-                color: "#fff",
-                font: "600 11px var(--font-sans)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              1
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ font: "500 13px var(--font-sans)" }}>
-                {a.route.firstStop.title}
-              </div>
-              <div
-                className="mono"
-                style={{ fontSize: 10, color: "var(--ink-500)" }}
-              >
-                {a.route.firstStop.detail}
-              </div>
+            <IcKey size={18} />
+          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: "600 13px var(--font-sans)" }}>
+              Ver cobranza del mes
             </div>
-            <IcArrowR size={13} style={{ color: "var(--ink-400)" }} />
+            <div
+              className="mono"
+              style={{ fontSize: 10, color: "var(--ink-500)" }}
+            >
+              {a.counts.overdue} pago(s) vencido(s) por gestionar
+            </div>
           </div>
-        </MCard>
+        </Link>
       </MSection>
 
       {/* Urgentes */}
       <MSection title={`Necesitan acción · ${a.urgent.length}`}>
+        {a.urgent.length === 0 && (
+          <div
+            style={{
+              padding: 20,
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid var(--ink-100)",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--ink-500)",
+            }}
+          >
+            Sin tareas urgentes. Buen trabajo. ✨
+          </div>
+        )}
         {a.urgent.map((it) => (
           <div
-            key={it.title}
+            key={it.id}
             style={{
               padding: 12,
               background: "#fff",
@@ -227,11 +229,7 @@ export default function AdminHomeScreen() {
                 flex: "0 0 auto",
               }}
             >
-              {it.tone === "bad" ? (
-                <IcBell size={17} />
-              ) : (
-                <IcSettings size={17} />
-              )}
+              <IcSettings size={17} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ font: "600 13px var(--font-sans)" }}>
@@ -244,71 +242,8 @@ export default function AdminHomeScreen() {
                 {it.detail}
               </div>
             </div>
-            <Link
-              href="/m/cobranza"
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                background: it.tone === "bad" ? "var(--bad)" : "var(--pp-500)",
-                color: "#fff",
-                font: "600 12px var(--font-sans)",
-              }}
-            >
-              {it.cta}
-            </Link>
           </div>
         ))}
-      </MSection>
-
-      {/* Acceso rápido */}
-      <MSection title="Acceso rápido">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 8,
-          }}
-        >
-          {QUICK.map(([Icon, label]) => (
-            <div
-              key={label}
-              style={{
-                padding: "14px 4px 10px",
-                background: "#fff",
-                borderRadius: 12,
-                border: "1px solid var(--ink-100)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <span
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "var(--pp-50)",
-                  color: "var(--pp-600)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Icon size={18} />
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: "var(--ink-700)",
-                }}
-              >
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
       </MSection>
 
       <MTabBar active={0} />

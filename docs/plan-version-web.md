@@ -5,7 +5,7 @@
 > lado) y con **información sólida** (datos reales, sin placeholders ni mocks).
 > Referencia de diseño: `inbox/propaily pwa deskopt/` (handoff v0.1, 15 may 2026).
 >
-> Estado: **Fase 1 en curso.** Última actualización: 2026-05-16.
+> Estado: **Fases 1-5 completadas (V1.10-V1.14).** Última actualización: 2026-05-16.
 
 ---
 
@@ -128,4 +128,23 @@
   `/propiedades` (~43 estilos inline) → migrado a `Card`/`Badge`/`Segmented`/
   `EmptyState`. **Pendiente:** la página de detalle `propiedades/[id]/*` aún
   usa estilos inline (funciona y consume tokens; re-skin diferido).
-- ⏭️ Siguiente: Fase 5 (PWA desktop) o re-skin de `propiedades/[id]`.
+- ✅ **Fase 5 (2026-05-16, V1.14)** — PWA desktop (capa PWA; las pantallas del
+  portal ya existían). Alcance: convertir el portal de escritorio en una app
+  instalable, sin reconstruir pantallas.
+  - Manifest: `display_override: [window-controls-overlay, standalone]`.
+  - `components/pwa/desktop-titlebar.tsx` — barra de título propia con
+    Window Controls Overlay (`env(titlebar-area-*)`, zona de arrastre);
+    visible solo en `display-mode: window-controls-overlay`.
+  - `components/pwa/keyboard-shortcuts.tsx` — atajos `⌘1/⌘2/⌘3` (Inicio /
+    Propiedades / Rentas), `⌘K` (búsqueda) y `⌘,` (Suscripción); inertes
+    cuando el foco está en un campo de texto.
+  - `components/pwa/install-prompt.tsx` — captura `beforeinstallprompt` y
+    ofrece instalar a partir de la 2ª visita; descartable.
+  - `components/pwa/connection-status.tsx` — tira de offline con reintentar.
+  - `service-worker-register.tsx` + `sw.js` — actualización controlada por
+    el usuario: el SW nuevo espera (`SKIP_WAITING` por mensaje) y un banner
+    ofrece "Actualizar".
+  - `AppShell` monta los componentes y desplaza el layout con
+    `env(titlebar-area-height)` cuando corre en modo overlay.
+- ⏭️ Siguiente: re-skin de `propiedades/[id]`, o pendientes del spec desktop
+  fuera de alcance de esta fase (command palette `⌘K`, onboarding/splash).

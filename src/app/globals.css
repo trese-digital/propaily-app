@@ -344,3 +344,22 @@ body {
     transition: none !important;
   }
 }
+
+/* PWA escritorio — barra de título (Window Controls Overlay).
+   Solo visible cuando la app corre instalada en modo overlay; toda la barra
+   es zona de arrastre de la ventana salvo los elementos interactivos. */
+.pp-titlebar {
+  display: none;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.pp-titlebar a,
+.pp-titlebar button {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+@media (display-mode: window-controls-overlay) {
+  .pp-titlebar {
+    display: flex;
+  }
+}

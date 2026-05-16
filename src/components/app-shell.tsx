@@ -5,9 +5,16 @@ import { logout } from "@/app/(auth)/login/actions";
 import { AppRail } from "@/components/app-rail";
 import { buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail-items";
 import { IcBell } from "@/components/icons";
+import { ConnectionStatus } from "@/components/pwa/connection-status";
+import { DesktopTitlebar } from "@/components/pwa/desktop-titlebar";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { KeyboardShortcuts } from "@/components/pwa/keyboard-shortcuts";
 import { Avatar, Button, initialsFrom } from "@/components/ui";
 import { APP_VERSION } from "@/lib/version";
 import type { AddonState } from "@/server/access/has-addon";
+
+/** Desplazamiento del contenido bajo el titlebar WCO (0 fuera de la PWA). */
+const TITLEBAR_OFFSET = "env(titlebar-area-height, 0px)";
 
 export function AppShell({
   user,
@@ -27,27 +34,44 @@ export function AppShell({
 
   return (
     <div
-      className="flex min-h-screen"
-      style={{ background: "var(--bg-muted)", color: "var(--fg)" }}
+      className="flex min-h-screen flex-col"
+      style={{
+        background: "var(--bg-muted)",
+        color: "var(--fg)",
+        paddingTop: TITLEBAR_OFFSET,
+      }}
     >
-      <aside
-        className="z-20 shrink-0 self-start sticky top-0 h-screen"
-        style={{ width: APP_RAIL_WIDTH, flexBasis: APP_RAIL_WIDTH }}
-      >
-        <AppRail items={railItems} />
-      </aside>
+      <DesktopTitlebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar
-          user={user}
-          org={org}
-          initials={initials}
-          unreadCount={unreadCount}
-        />
-        <main className="min-w-0 flex-1" style={{ background: "var(--bg)" }}>
-          {children}
-        </main>
+      <div className="flex min-h-0 flex-1">
+        <aside
+          className="z-20 shrink-0 self-start sticky"
+          style={{
+            width: APP_RAIL_WIDTH,
+            flexBasis: APP_RAIL_WIDTH,
+            top: TITLEBAR_OFFSET,
+            height: `calc(100vh - ${TITLEBAR_OFFSET})`,
+          }}
+        >
+          <AppRail items={railItems} />
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar
+            user={user}
+            org={org}
+            initials={initials}
+            unreadCount={unreadCount}
+          />
+          <main className="min-w-0 flex-1" style={{ background: "var(--bg)" }}>
+            {children}
+          </main>
+        </div>
       </div>
+
+      <KeyboardShortcuts />
+      <InstallPrompt />
+      <ConnectionStatus />
     </div>
   );
 }
@@ -65,8 +89,9 @@ function TopBar({
 }) {
   return (
     <header
-      className="sticky top-0 z-10 flex items-center gap-4 px-6"
+      className="sticky z-10 flex items-center gap-4 px-6"
       style={{
+        top: TITLEBAR_OFFSET,
         height: 56,
         background: "var(--bg)",
         borderBottom: "1px solid var(--border)",

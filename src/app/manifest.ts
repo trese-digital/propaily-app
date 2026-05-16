@@ -17,10 +17,14 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
+    // En escritorio (Chromium) `window-controls-overlay` deja que el contenido
+    // se extienda sobre la barra de título: la usamos para el titlebar propio
+    // (ver `DesktopTitlebar`). `standalone` es el fallback.
+    display_override: ["window-controls-overlay", "standalone"],
     orientation: "portrait",
     background_color: "#0E0A16",
     theme_color: "#6E3AFF",
-    categories: ["business", "productivity"],
+    categories: ["business", "finance", "productivity"],
     icons: [
       {
         src: "/icons/icon-192.png",

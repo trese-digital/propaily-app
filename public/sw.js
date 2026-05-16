@@ -11,7 +11,18 @@
 const STATIC_CACHE = "propaily-static-v1";
 
 self.addEventListener("install", () => {
-  self.skipWaiting();
+  // Sin `skipWaiting()` automático: cuando hay una versión nueva, el SW queda
+  // en estado "waiting" y la UI muestra el banner de actualización. El usuario
+  // decide cuándo aplicarla. En la PRIMERA instalación (sin SW activo previo)
+  // no hay fase de espera, así que el SW activa de inmediato igual.
+});
+
+// El banner de actualización (`service-worker-register.tsx`) envía este
+// mensaje cuando el usuario hace click en "Actualizar".
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {

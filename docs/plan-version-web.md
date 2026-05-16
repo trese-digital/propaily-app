@@ -1,0 +1,111 @@
+# Plan — Consolidación de la versión web (escritorio)
+
+> Objetivo: que **todas las páginas de la versión web** (`app.propaily.com`,
+> portal de escritorio) estén **conectadas** (toda navegación lleva a algún
+> lado) y con **información sólida** (datos reales, sin placeholders ni mocks).
+> Referencia de diseño: `inbox/propaily pwa deskopt/` (handoff v0.1, 15 may 2026).
+>
+> Estado: **Fase 1 en curso.** Última actualización: 2026-05-16.
+
+---
+
+## 1. Inventario de rutas
+
+| Ruta | Existe | Conectada | Datos | Diseño en handoff |
+|---|---|---|---|---|
+| `/` dashboard | ✅ | ✅ home | reales · **mapa falso → #3** | `dashboard.jsx` |
+| `/propiedades` | ✅ | ⚠️ **#2** | reales | `propiedades.jsx` |
+| `/propiedades/nueva` | ✅ | ✅ botón | form real | — |
+| `/propiedades/[id]` | ✅ | ✅ card | reales | `propiedad-detalle.jsx` (2 variantes) |
+| `/propiedades/[id]/editar` | ✅ | ✅ botón | form real | — |
+| `/rentas` | ✅ | ✅ rail | reales | `rentas-lista.jsx` |
+| `/rentas/calendario` | ✅ | ✅ link | reales | `rentas-calendario.jsx` |
+| `/rentas/nuevo` | ✅ | ✅ botón | form real | — |
+| `/rentas/[id]` | ✅ | ✅ click | reales | `rentas-detalle.jsx` |
+| `/clientes` · `/clientes/[id]` | ✅ | ✅ rail | reales | `clientes.jsx` |
+| `/valuaciones` | ✅ | ✅ rail | reales | `valuaciones.jsx` |
+| `/usuarios` | ✅ | ✅ rail | reales | `usuarios.jsx` |
+| `/cartografia` | ✅ (addon) | ✅ rail | PostGIS + Google Maps | `cartografia.jsx` |
+| `/welcome` | ✅ | landing | marketing | — |
+| `(auth)/login` · `/signup` | ✅ | — | — | screens de auth |
+| `/admin` · `/admin/tenants(+[id])` · `/admin/avaluos` · `/admin/cartografia` · `/admin/auditoria` | ✅ | ✅ nav admin | reales | — |
+| **`/mantenimiento`** | ❌ | rail `disabled` "· pronto" | — | `mantenimiento.jsx` (kanban) |
+| **`/avisos`** (notificaciones desktop) | ❌ | sin entrada | — | `notificaciones.jsx` |
+| **`/suscripcion`** (plan del cliente) | ❌ | sin entrada | — | `suscripcion.jsx` |
+
+---
+
+## 2. Bugs reportados (Fase 1)
+
+### #2 — El ícono "Propiedades" no lleva
+- **Diagnóstico:** en el código el ítem del rail (`app-rail-items.tsx`) y la
+  página `(client)/propiedades/page.tsx` están **correctos**: el `<Link>`
+  apunta a `/propiedades` y la página compila y consulta datos reales. No hay
+  bug en el escritorio a nivel de código.
+- **Causa real:** en la **PWA móvil**, el tab "Propiedades" apuntaba a
+  `/m/inicio` (no existía pantalla de listado móvil) → "no te lleva".
+- **Fix:** nueva pantalla `/m/propiedades` (listado móvil) + el tab apunta ahí.
+- Si el fallo es en el escritorio, hace falta reproducirlo en runtime con el
+  síntoma exacto (no pasa nada / error / pantalla en blanco).
+
+### #3 — Mapa falso en el dashboard
+- **Causa:** `(client)/page.tsx` renderiza `MapPreview`, un SVG decorativo.
+- **Fix:** componente cliente `PortfolioMap` con Google Maps JS API
+  (`@googlemaps/js-api-loader`, key `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) que
+  coloca un marcador por cada propiedad con `latitude`/`longitude`. Si ninguna
+  tiene coordenadas, centra en León. Reusa el patrón de `cartografia/MapClient`.
+
+### #4 — Invitación con enlace expirado / roto
+- **Síntoma:** el correo de invitación lleva a
+  `propaily.com/#error=access_denied&error_code=otp_expired`.
+- **Causas:**
+  1. `inviteUserByEmail` se llama **sin `redirectTo`** → Supabase usa la Site
+     URL por defecto (cae en `propaily.com`, no en el portal).
+  2. **No existe la ruta `/auth/callback`** (el middleware la declara pública
+     pero no hay handler) → no se intercambia el `code` por sesión.
+  3. `otp_expired` = el enlace caducó antes de usarse.
+- **Fix (código):** crear `src/app/auth/callback/route.ts` (intercambio
+  `code`→sesión) y pasar `redirectTo: app.propaily.com/auth/callback` en la
+  invitación.
+- **Fix (config del usuario, en Supabase):** Site URL = `https://app.propaily.com`
+  y agregar `https://app.propaily.com/auth/callback` a la allowlist de Redirect
+  URLs. Sin esto Supabase rechaza el redirect.
+
+---
+
+## 3. Fases
+
+**Fase 1 — Bugs y conexiones rotas** *(en curso)*
+- Arreglar #2, #3, #4.
+
+**Fase 2 — Auditoría "información sólida"**
+- Recorrer cada ruta del inventario: datos reales, estados vacío/carga/error,
+  toda acción conecta. Cerrar placeholders ("Insights · próximamente", textos
+  demo, mapas/figuras falsas restantes).
+
+**Fase 3 — Módulos faltantes**
+- `/mantenimiento` (kanban), `/avisos` (notificaciones desktop), `/suscripcion`
+  (plan + billing del cliente; hoy solo existe el lado GF en `/admin/tenants`).
+
+**Fase 4 — Re-skin con el handoff**
+- Aplicar `Propaily Plataforma.html` y los componentes de
+  `inbox/propaily pwa deskopt/components/` a los módulos existentes.
+
+**Fase 5 — PWA desktop**
+- Las 18 pantallas del `Propaily Desktop Flow` (instalación, Window Controls
+  Overlay, atajos de teclado) — equivalente desktop de la PWA móvil.
+
+---
+
+## 4. Progreso
+
+- ✅ **Fase 1 (2026-05-16, V1.10)** — los 3 bugs:
+  - #2 → nueva pantalla `/m/propiedades` + el tab móvil apunta ahí. El rail de
+    escritorio estaba correcto (sin cambios).
+  - #3 → `components/portfolio-map.tsx` (Google Maps real) reemplaza el SVG
+    falso del dashboard; un marcador por propiedad geolocalizada.
+  - #4 → ruta `src/app/auth/callback/route.ts` + `redirectTo` en la invitación.
+    **Falta config del usuario en Supabase:** Site URL = `https://app.propaily.com`
+    y agregar `https://app.propaily.com/auth/callback` a Redirect URLs.
+- ⏭️ Siguiente: Fase 2 (auditoría "información sólida") o Fase 3 (módulos
+  faltantes), a definir.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { IcArrowUR, IcBuilding, IcMap, IcPlus, IcSpark } from "@/components/icons";
+import { PortfolioMap, type MapPin } from "@/components/portfolio-map";
 import { Badge, type BadgeTone, Card, CardHeader, Kpi } from "@/components/ui";
 import { appScope, requireContext } from "@/server/auth/context";
 import { withAppScope } from "@/server/db/scoped";
@@ -61,6 +62,7 @@ export default async function HomePage() {
       recentProperties,
       valueAgg,
       rentAgg,
+      pinRows,
     ] = await Promise.all([
       tx.property.count({ where: { deletedAt: null } }),
       tx.portfolio.count({ where: { deletedAt: null } }),
@@ -88,6 +90,15 @@ export default async function HomePage() {
         where: { deletedAt: null },
         _sum: { monthlyRentCents: true },
       }),
+      tx.property.findMany({
+        where: {
+          deletedAt: null,
+          latitude: { not: null },
+          longitude: { not: null },
+        },
+        select: { id: true, name: true, latitude: true, longitude: true },
+        take: 200,
+      }),
     ]);
     return {
       propertyCount,
@@ -96,8 +107,22 @@ export default async function HomePage() {
       recentProperties,
       valueAgg,
       rentAgg,
+      pinRows,
     };
   });
+
+  const pins: MapPin[] = data.pinRows.flatMap((p) =>
+    p.latitude != null && p.longitude != null
+      ? [
+          {
+            id: p.id,
+            name: p.name,
+            lat: Number(p.latitude),
+            lng: Number(p.longitude),
+          },
+        ]
+      : [],
+  );
 
   const totalValue =
     data.valueAgg._sum.currentValueCents ??
@@ -179,7 +204,7 @@ export default async function HomePage() {
             }
           />
           <div className="relative h-[320px]">
-            <MapPreview />
+            <PortfolioMap pins={pins} />
           </div>
         </Card>
 
@@ -342,57 +367,4 @@ function PropertyCard({
   );
 }
 
-/** Mapa estilizado — placeholder hasta integrar un preview real de Leaflet. */
-function MapPreview() {
-  return (
-    <div
-      className="absolute inset-0 overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(135deg, rgba(110,58,255,0.04) 0%, rgba(110,58,255,0) 60%), var(--color-ink-50)",
-      }}
-      aria-hidden
-    >
-      <svg
-        viewBox="0 0 800 320"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full"
-      >
-        <defs>
-          <pattern id="dash-block" width="80" height="80" patternUnits="userSpaceOnUse">
-            <rect width="80" height="80" fill="var(--color-ink-25)" />
-            <path
-              d="M0 0 L80 0 M0 0 L0 80"
-              stroke="var(--color-ink-200)"
-              strokeWidth="1"
-            />
-          </pattern>
-        </defs>
-        <rect width="800" height="320" fill="url(#dash-block)" opacity="0.7" />
-        <path
-          d="M0,140 Q400,120 800,180"
-          stroke="var(--color-ink-300)"
-          strokeWidth="5"
-          fill="none"
-          opacity="0.7"
-        />
-        <path
-          d="M200,0 Q220,160 280,320"
-          stroke="var(--color-ink-300)"
-          strokeWidth="5"
-          fill="none"
-          opacity="0.6"
-        />
-        <path
-          d="M120,60 L320,70 L340,210 L140,200 Z"
-          fill="rgba(110,58,255,0.16)"
-          stroke="var(--color-pp-500)"
-          strokeWidth="1.5"
-        />
-      </svg>
-      <span className="mono absolute bottom-2.5 right-2.5 rounded bg-white/75 px-1.5 py-0.5 text-[10px] text-ink-500">
-        © OpenStreetMap · Propaily
-      </span>
-    </div>
-  );
-}
+/* El mapa real del portafolio vive en `components/portfolio-map.tsx` (#3). */

@@ -21,7 +21,7 @@ type TabItem = {
 
 const TABS: TabItem[] = [
   { id: "inicio", label: "Inicio", href: "/m/inicio", Icon: IcChart },
-  { id: "prop", label: "Propiedades", href: "/m/inicio", Icon: IcBuilding },
+  { id: "prop", label: "Propiedades", href: "/m/propiedades", Icon: IcBuilding },
   { id: "rentas", label: "Rentas", href: "/m/pago", Icon: IcKey },
   { id: "avisos", label: "Avisos", href: "/m/avisos", Icon: IcBell, dot: true },
   { id: "yo", label: "Tú", href: "/m/perfil", Icon: IcUsers },

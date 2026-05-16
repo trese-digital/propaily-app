@@ -7,6 +7,7 @@ import type { Role } from "@prisma/client";
 import { appScope, requireContext, type AppContext } from "@/server/auth/context";
 import { can } from "@/server/auth/can";
 import { dbBypass, withAppScope } from "@/server/db/scoped";
+import { APP_ORIGIN } from "@/lib/domains";
 import { createAdminClient } from "@/lib/supabase/server";
 
 /**
@@ -79,6 +80,9 @@ export async function invitarUsuario(
   const supabase = createAdminClient();
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     data: { name },
+    // El enlace del correo debe volver al portal, no a la raíz de marketing.
+    // `/auth/callback` intercambia el code por sesión.
+    redirectTo: `${APP_ORIGIN}/auth/callback`,
   });
   if (error || !data?.user) {
     const msg = error?.message ?? "";

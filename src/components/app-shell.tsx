@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { logout } from "@/app/(auth)/login/actions";
 import { AppRail } from "@/components/app-rail";
 import { buildRailItems, APP_RAIL_WIDTH } from "@/components/app-rail-items";
+import { IcBell } from "@/components/icons";
 import { Avatar, Button, initialsFrom } from "@/components/ui";
 import { APP_VERSION } from "@/lib/version";
 import type { AddonState } from "@/server/access/has-addon";
@@ -12,11 +13,13 @@ export function AppShell({
   user,
   org,
   addons,
+  unreadCount = 0,
   children,
 }: {
   user: { name: string | null; email: string };
   org: string;
   addons: AddonState;
+  unreadCount?: number;
   children: ReactNode;
 }) {
   const railItems = buildRailItems(addons);
@@ -35,7 +38,12 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar user={user} org={org} initials={initials} />
+        <TopBar
+          user={user}
+          org={org}
+          initials={initials}
+          unreadCount={unreadCount}
+        />
         <main className="min-w-0 flex-1" style={{ background: "var(--bg)" }}>
           {children}
         </main>
@@ -48,10 +56,12 @@ function TopBar({
   user,
   org,
   initials,
+  unreadCount,
 }: {
   user: { name: string | null; email: string };
   org: string;
   initials: string;
+  unreadCount: number;
 }) {
   return (
     <header
@@ -122,6 +132,24 @@ function TopBar({
           <path d="M12 5v14M5 12h14" />
         </svg>
         Nueva propiedad
+      </Link>
+
+      <Link
+        href={"/avisos" as never}
+        aria-label={
+          unreadCount > 0 ? `Avisos · ${unreadCount} sin leer` : "Avisos"
+        }
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 transition-colors hover:bg-(--bg-muted) hover:text-ink-800"
+      >
+        <IcBell size={18} />
+        {unreadCount > 0 && (
+          <span
+            className="mono absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
+            style={{ background: "var(--color-pp-500)" }}
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
       </Link>
 
       <div className="flex items-center gap-2">

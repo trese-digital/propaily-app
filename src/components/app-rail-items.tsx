@@ -1,13 +1,14 @@
 import {
   IcBuilding,
   IcCalc,
+  IcCard,
   IcChart,
   IcKey,
   IcLayers,
   IcMap,
   IcShield,
-  IcSpark,
   IcUsers,
+  IcWrench,
 } from "@/components/icons";
 import type { ReactNode } from "react";
 
@@ -29,9 +30,7 @@ export const APP_RAIL_WIDTH = 56;
  *
  * - **Cartografía / Insights / Calculadoras** son addons: aparecen `disabled`
  *   cuando la Subscription no los incluye, para que el cliente vea que existen.
- * - **Propiedades** es CORE y ya está operativo.
- * - **Mantenimiento** es un módulo CORE aún en construcción: se muestra
- *   `disabled` con la marca "· pronto" hasta que su fase lo habilite.
+ * - **Propiedades**, **Mantenimiento** y **Suscripción** son CORE y operativos.
  *
  * El gating real de acceso vive en el server (route handlers + page server
  * components), no acá.
@@ -87,9 +86,17 @@ export function buildRailItems(addons: {
     },
     {
       id: "mantenimiento",
-      label: "Mantenimiento · pronto",
-      icon: <IcSpark size={18} />,
-      disabled: true,
+      label: "Mantenimiento",
+      icon: <IcWrench size={18} />,
+      href: "/mantenimiento",
+      matchPrefix: "/mantenimiento",
+    },
+    {
+      id: "suscripcion",
+      label: "Suscripción",
+      icon: <IcCard size={18} />,
+      href: "/suscripcion",
+      matchPrefix: "/suscripcion",
     },
     {
       id: "insights",

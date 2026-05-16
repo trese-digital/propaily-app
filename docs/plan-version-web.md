@@ -107,5 +107,25 @@
   - #4 → ruta `src/app/auth/callback/route.ts` + `redirectTo` en la invitación.
     **Falta config del usuario en Supabase:** Site URL = `https://app.propaily.com`
     y agregar `https://app.propaily.com/auth/callback` a Redirect URLs.
-- ⏭️ Siguiente: Fase 2 (auditoría "información sólida") o Fase 3 (módulos
-  faltantes), a definir.
+- ✅ **Fase 2 (2026-05-16, V1.11)** — información sólida:
+  - `loading.tsx` / `error.tsx` en `(client)` (skeletons + error boundary) y
+    `not-found.tsx` global → estados de carga/error/404 para todo el portal.
+  - Dashboard: el placeholder "Insights · próximamente" se reemplazó por la
+    tarjeta "Requiere atención" con datos reales (pagos vencidos, contratos por
+    vencer en 60 d, solicitudes de avalúo abiertas).
+  - TopBar: el buscador falso ⌘K ahora es un Link real a `/propiedades`.
+- ✅ **Fase 3 (2026-05-16, V1.12)** — módulos faltantes. Los modelos Prisma
+  (`MaintenanceRequest`, `Notification`, `Subscription`) ya existían con RLS:
+  - `/mantenimiento` — tablero kanban por estado (5 columnas), KPIs, modal de
+    nueva solicitud, cambio de estado. Server: `server/maintenance/actions.ts`.
+  - `/avisos` — centro de notificaciones del usuario + campana con badge de no
+    leídos en el TopBar. Server: `server/notifications/{data,actions}.ts`.
+  - `/suscripcion` — vista read-only del plan, uso vs límite y addons. Sin
+    Stripe (lo administra GF). Server: `server/billing/subscription.ts`.
+  - Rail: Mantenimiento y Suscripción habilitados.
+- ✅ **Fase 4 (2026-05-16, V1.13)** — re-skin. Los tokens del handoff ya
+  estaban aplicados en `globals.css`; el único módulo fuera del sistema era
+  `/propiedades` (~43 estilos inline) → migrado a `Card`/`Badge`/`Segmented`/
+  `EmptyState`. **Pendiente:** la página de detalle `propiedades/[id]/*` aún
+  usa estilos inline (funciona y consume tokens; re-skin diferido).
+- ⏭️ Siguiente: Fase 5 (PWA desktop) o re-skin de `propiedades/[id]`.

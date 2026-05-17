@@ -5,6 +5,12 @@
 // hizo. `APP_VERSION` siempre toma la entrada más reciente. Así queda el orden.
 export const CHANGELOG = [
   {
+    version: "1.19",
+    date: "2026-05-17",
+    summary:
+      "Re-skin del detalle de propiedad: la página /propiedades/[id] migrada al sistema de diseño (Card, Button, Kpi, EmptyState), consistente con el resto del portal",
+  },
+  {
     version: "1.18",
     date: "2026-05-17",
     summary:

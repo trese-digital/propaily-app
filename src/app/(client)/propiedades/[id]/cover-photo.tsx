@@ -6,6 +6,7 @@ import {
   setPropertyCoverPhoto,
   type SetCoverPhotoState,
 } from "@/server/properties/cover-photo";
+import { Button } from "@/components/ui";
 
 const initial: SetCoverPhotoState = {};
 
@@ -22,7 +23,7 @@ export function CoverPhoto({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-paper-2 border border-black/8 mb-6 h-[280px] group">
+    <div className="relative rounded-xl overflow-hidden bg-ink-50 border border-ink-100 h-[280px] group">
       {coverUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -31,7 +32,7 @@ export function CoverPhoto({
           className="w-full h-full object-cover"
         />
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center text-slate gap-2">
+        <div className="w-full h-full flex flex-col items-center justify-center text-ink-500 gap-2">
           <svg
             viewBox="0 0 24 24"
             width="32"
@@ -68,18 +69,19 @@ export function CoverPhoto({
             }
           }}
         />
-        <button
+        <Button
+          variant="secondary"
+          size="md"
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={pending}
-          className="bg-white text-navy px-5 py-2.5 rounded-md text-sm font-semibold hover:bg-paper-2 transition-colors disabled:opacity-60"
         >
           {pending ? "Subiendo…" : coverUrl ? "Cambiar foto" : "Subir foto"}
-        </button>
+        </Button>
       </form>
 
       {state.error ? (
-        <div className="absolute bottom-3 left-3 right-3 bg-magenta text-white px-3 py-2 rounded-md text-sm font-medium">
+        <div className="absolute bottom-3 left-3 right-3 bg-bad text-white px-3 py-2 rounded-md text-sm font-medium">
           {state.error}
         </div>
       ) : null}

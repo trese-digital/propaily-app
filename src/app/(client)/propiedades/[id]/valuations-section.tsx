@@ -3,7 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 
 import { IcChart, IcPlus } from "@/components/icons";
-import { Badge, type BadgeTone, Button, Field, Modal, Textarea } from "@/components/ui";
+import { Badge, type BadgeTone, Button, Field, Modal, Textarea, Card, CardHeader, CardBody } from "@/components/ui";
 import {
   cancelarSolicitud,
   solicitarValuacion,
@@ -54,54 +54,25 @@ export function ValuationsSection({
   }
 
   return (
-    <div
-      style={{
-        background: "var(--bg)",
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "14px 18px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: "600 14px var(--font-sans)", color: "var(--fg)" }}>
-            Valuaciones
-          </div>
-          <div style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
-            Histórico de avalúos GF · append-only
-          </div>
-        </div>
-        {!openRequest && (
-          <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
-            <IcPlus size={13} />
-            Solicitar actualización
-          </Button>
-        )}
-      </div>
-
-      <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+    <Card>
+      <CardHeader
+        title="Valuaciones"
+        action={
+          !openRequest ? (
+            <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
+              <IcPlus size={13} />
+              Solicitar actualización
+            </Button>
+          ) : (
+            <span className="text-xs text-ink-500">Histórico de avalúos GF · append-only</span>
+          )
+        }
+      />
+      <CardBody className="flex flex-col gap-3.5">
         {openRequest && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "10px 12px",
-              borderRadius: 9,
-              background: "var(--accent-soft)",
-              border: "1px solid var(--color-pp-100)",
-            }}
-          >
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-pp-50 border border-pp-100">
             <Badge tone={openRequest.tone}>{openRequest.statusLabel}</Badge>
-            <span style={{ flex: 1, fontSize: 12.5, color: "var(--color-pp-700)" }}>
+            <span className="flex-1 text-sm text-pp-700">
               Solicitud enviada el {openRequest.createdLabel}. El equipo de GF la atenderá.
             </span>
             {openRequest.cancelable && (
@@ -173,7 +144,7 @@ export function ValuationsSection({
             ))}
           </ul>
         )}
-      </div>
+      </CardBody>
 
       <Modal
         open={open}
@@ -206,6 +177,6 @@ export function ValuationsSection({
           )}
         </form>
       </Modal>
-    </div>
+    </Card>
   );
 }

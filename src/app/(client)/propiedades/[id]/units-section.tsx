@@ -8,6 +8,7 @@ import {
   eliminarUnidad,
   type UnitFormState,
 } from "@/server/units/actions";
+import { Button, Card, CardHeader, CardBody, Badge } from "@/components/ui";
 
 const UNIT_TYPES: Array<{ value: string; label: string }> = [
   { value: "apartment", label: "Departamento" },
@@ -66,29 +67,37 @@ export function UnitsSection({
   }
 
   return (
-    <div className="bg-white border border-black/8 rounded-xl p-6 mt-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-lg font-medium m-0">
-          Unidades <span className="text-slate font-mono text-sm">({units.length})</span>
-        </h2>
-        {!showForm ? (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="bg-teal text-navy px-4 py-2 rounded-md text-sm font-semibold border border-teal hover:bg-teal-bright transition-colors"
-          >
-            + Nueva unidad
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowForm(false)}
-            className="text-slate text-sm hover:text-navy"
-          >
-            Cerrar
-          </button>
-        )}
-      </div>
+    <Card>
+      <CardHeader
+        title={
+          <div className="flex items-center gap-2">
+            Unidades{" "}
+            <span className="mono text-sm text-ink-500">({units.length})</span>
+          </div>
+        }
+        action={
+          !showForm ? (
+            <Button
+              variant="primary"
+              size="sm"
+              type="button"
+              onClick={() => setShowForm(true)}
+            >
+              + Nueva unidad
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => setShowForm(false)}
+            >
+              Cerrar
+            </Button>
+          )
+        }
+      />
+      <CardBody>
 
       {showForm ? (
         <form
@@ -138,7 +147,8 @@ export function UnitsSection({
           ))}
         </ul>
       )}
-    </div>
+      </CardBody>
+    </Card>
   );
 }
 

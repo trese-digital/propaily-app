@@ -10,6 +10,7 @@ import {
   type UploadDocumentState,
   type EditDocumentState,
 } from "@/server/documents/actions";
+import { Button, Card, CardHeader, CardBody, EmptyState } from "@/components/ui";
 
 const CATEGORY_LABEL: Record<string, string> = {
   deed: "Escritura",
@@ -85,29 +86,37 @@ export function DocumentsSection({
   }
 
   return (
-    <div className="bg-white border border-black/8 rounded-xl p-6 mt-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-lg font-medium m-0">
-          Documentos <span className="text-slate font-mono text-sm">({documents.length})</span>
-        </h2>
-        {!showForm ? (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="bg-teal text-navy px-4 py-2 rounded-md text-sm font-semibold border border-teal hover:bg-teal-bright transition-colors"
-          >
-            + Subir documento
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowForm(false)}
-            className="text-slate text-sm hover:text-navy"
-          >
-            Cerrar
-          </button>
-        )}
-      </div>
+    <Card>
+      <CardHeader
+        title={
+          <div className="flex items-center gap-2">
+            Documentos{" "}
+            <span className="mono text-sm text-ink-500">({documents.length})</span>
+          </div>
+        }
+        action={
+          !showForm ? (
+            <Button
+              variant="primary"
+              size="sm"
+              type="button"
+              onClick={() => setShowForm(true)}
+            >
+              + Subir documento
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => setShowForm(false)}
+            >
+              Cerrar
+            </Button>
+          )
+        }
+      />
+      <CardBody>
 
       {showForm ? (
         <form
@@ -205,7 +214,8 @@ export function DocumentsSection({
           ))}
         </ul>
       )}
-    </div>
+      </CardBody>
+    </Card>
   );
 }
 

@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { IcChevR } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
+import { PropertyImage } from "@/components/mobile/property-image";
+import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import { Badge } from "@/components/mobile/ui";
 import { getOwnerHome, resolveMobileRole } from "@/server/mobile/data";
 
@@ -13,13 +15,14 @@ export default async function MobilePropertiesScreen() {
   const { properties } = await getOwnerHome(ctx);
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "var(--bg-muted)",
-        paddingBottom: 100,
-      }}
-    >
+    <PullToRefresh>
+      <div
+        style={{
+          minHeight: "100dvh",
+          background: "var(--bg-muted)",
+          paddingBottom: 100,
+        }}
+      >
       <div
         style={{
           padding: "var(--m-safe-top) 18px 14px",
@@ -88,8 +91,9 @@ export default async function MobilePropertiesScreen() {
               alignItems: "center",
             }}
           >
-            <div
-              className="pp-img-ph"
+            <PropertyImage
+              src={p.coverPhotoUrl}
+              alt={`Foto de ${p.name}`}
               style={{ width: 56, height: 56, borderRadius: 8, flex: "0 0 auto" }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -130,5 +134,6 @@ export default async function MobilePropertiesScreen() {
 
       <MTabBar active={1} />
     </div>
+    </PullToRefresh>
   );
 }

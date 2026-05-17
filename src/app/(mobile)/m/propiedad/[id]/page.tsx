@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { IcArrowR, IcCheck, IcMap, IcMore } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
+import { PropertyImage } from "@/components/mobile/property-image";
+import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import {
   Avatar,
   Badge,
@@ -24,17 +26,18 @@ export default async function PropertyDetailScreen({
   const d = await getPropertyDetailData(ctx, id);
   if (!d) notFound();
 
+
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "var(--bg-muted)",
-        paddingBottom: 100,
-      }}
-    >
+    <PullToRefresh>
+      <div
+        style={{
+          minHeight: "100dvh",
+          background: "var(--bg-muted)",
+          paddingBottom: 100,
+        }}
+      >
       {/* Hero */}
       <div
-        className="pp-img-ph"
         style={{
           height: 280,
           borderRadius: 0,
@@ -42,6 +45,18 @@ export default async function PropertyDetailScreen({
           alignItems: "stretch",
         }}
       >
+        <PropertyImage
+          src={d.coverPhotoUrl}
+          alt={`Foto de ${d.name}`}
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: 0,
+          }}
+          fallbackStyle={{
+            alignItems: "stretch",
+          }}
+        />
         <div
           style={{
             position: "absolute",
@@ -231,6 +246,7 @@ export default async function PropertyDetailScreen({
 
       <MTabBar active={1} />
     </div>
+    </PullToRefresh>
   );
 }
 
@@ -238,10 +254,11 @@ const glassBtn: React.CSSProperties = {
   width: 32,
   height: 32,
   borderRadius: 8,
-  background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(10px)",
+  background: "rgba(45, 55, 72, 0.7)",
+  backdropFilter: "blur(8px)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "var(--ink-700)",
+  color: "#fff",
+  textDecoration: "none",
 };

@@ -12,6 +12,7 @@
 import type { NotifItem, NotifType } from "@/components/mobile/notif";
 import { appScope, requireContext, type AppContext } from "@/server/auth/context";
 import { withAppScope } from "@/server/db/scoped";
+import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
 
 /* ───────────────────────── Formateadores ───────────────────────── */
 
@@ -101,6 +102,7 @@ export async function getOwnerHome(ctx: AppContext) {
           currentValueCents: true,
           fiscalValueCents: true,
           operationalStatus: true,
+          coverPhotoStorageKey: true,
           leases: {
             where: { status: "active", deletedAt: null },
             select: { monthlyRentCents: true, tenantName: true },
@@ -145,18 +147,21 @@ export async function getOwnerHome(ctx: AppContext) {
   }
   const rentedCount = data.properties.filter((p) => p.leases[0]).length;
 
-  const properties = data.properties.map((p) => ({
-    id: p.id,
-    name: p.name,
-    colony: [p.address, p.city].filter(Boolean).join(" · ") || "Sin ubicación",
-    value: mxnShort(p.currentValueCents ?? p.fiscalValueCents),
-    status: STATUS_LABEL[p.operationalStatus] ?? p.operationalStatus,
-    statusTone: statusTone(p.operationalStatus),
-    area: p.builtAreaSqm ?? p.landAreaSqm
-      ? `${numFmt.format(Math.round(Number(p.builtAreaSqm ?? p.landAreaSqm)))} m²`
-      : "—",
-    rentMonth: p.leases[0] ? mxnShort(p.leases[0].monthlyRentCents) : "—",
-  }));
+  const properties = await Promise.all(
+    data.properties.map(async (p) => ({
+      id: p.id,
+      name: p.name,
+      colony: [p.address, p.city].filter(Boolean).join(" · ") || "Sin ubicación",
+      value: mxnShort(p.currentValueCents ?? p.fiscalValueCents),
+      status: STATUS_LABEL[p.operationalStatus] ?? p.operationalStatus,
+      statusTone: statusTone(p.operationalStatus),
+      area: p.builtAreaSqm ?? p.landAreaSqm
+        ? `${numFmt.format(Math.round(Number(p.builtAreaSqm ?? p.landAreaSqm)))} m²`
+        : "—",
+      rentMonth: p.leases[0] ? mxnShort(p.leases[0].monthlyRentCents) : "—",
+      coverPhotoUrl: p.coverPhotoStorageKey ? await getPropertyCoverUrl(p.coverPhotoStorageKey) : null,
+    }))
+  );
 
   const upcomingPayments = data.payments.map((r) => {
     const tone =
@@ -213,6 +218,7 @@ export async function getPropertyDetailData(ctx: AppContext, id: string) {
         fiscalValueCents: true,
         commercialValueCents: true,
         cartoPredioId: true,
+        coverPhotoStorageKey: true,
         leases: {
           where: { status: "active", deletedAt: null },
           orderBy: { startDate: "desc" },
@@ -231,6 +237,8 @@ export async function getPropertyDetailData(ctx: AppContext, id: string) {
 
   const lease = p.leases[0];
   const area = p.builtAreaSqm ?? p.landAreaSqm;
+  const coverPhotoUrl = p.coverPhotoStorageKey ? await getPropertyCoverUrl(p.coverPhotoStorageKey) : null;
+
   return {
     id: p.id,
     name: p.name,
@@ -242,6 +250,7 @@ export async function getPropertyDetailData(ctx: AppContext, id: string) {
     value: mxnShort(p.currentValueCents ?? p.fiscalValueCents),
     rentMonth: lease ? mxnShort(lease.monthlyRentCents) : "—",
     area: area ? `${numFmt.format(Math.round(Number(area)))}m²` : "—",
+    coverPhotoUrl,
     catastro: {
       linked: p.cartoPredioId != null,
       fiscal: mxnShort(p.fiscalValueCents),

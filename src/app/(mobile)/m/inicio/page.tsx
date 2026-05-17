@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 
 import { IcBell, IcChevR } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
+import { PropertyImage } from "@/components/mobile/property-image";
+import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import { Avatar, Badge, MSection } from "@/components/mobile/ui";
 import { getOwnerHome, resolveMobileRole } from "@/server/mobile/data";
 
@@ -19,13 +21,14 @@ export default async function OwnerHomeScreen() {
   const firstName = ctx.user.name?.split(" ")[0] ?? "Hola";
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "var(--bg-muted)",
-        paddingBottom: 100,
-      }}
-    >
+    <PullToRefresh>
+      <div
+        style={{
+          minHeight: "100dvh",
+          background: "var(--bg-muted)",
+          paddingBottom: 100,
+        }}
+      >
       {/* Header */}
       <div
         style={{
@@ -236,8 +239,9 @@ export default async function OwnerHomeScreen() {
               alignItems: "center",
             }}
           >
-            <div
-              className="pp-img-ph"
+            <PropertyImage
+              src={p.coverPhotoUrl}
+              alt={`Foto de ${p.name}`}
               style={{ width: 56, height: 56, borderRadius: 8, flex: "0 0 auto" }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -357,6 +361,7 @@ export default async function OwnerHomeScreen() {
 
       <MTabBar active={0} />
     </div>
+    </PullToRefresh>
   );
 }
 

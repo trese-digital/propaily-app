@@ -5,6 +5,12 @@
 // hizo. `APP_VERSION` siempre toma la entrada más reciente. Así queda el orden.
 export const CHANGELOG = [
   {
+    version: "1.15",
+    date: "2026-05-17",
+    summary:
+      "Bloque 0 móvil — fotos reales de propiedades en la PWA (signed URLs), safe-area/notch verificada y pull-to-refresh en las pantallas de listado",
+  },
+  {
     version: "1.14",
     date: "2026-05-16",
     summary:

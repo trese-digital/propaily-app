@@ -1,5 +1,6 @@
 /** 18 · Cobranza del operador — datos reales (Fase 2a). */
 import { MTabBar } from "@/components/mobile/nav";
+import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import { Avatar, Chip, Progress } from "@/components/mobile/ui";
 import { getCollectionsData, resolveMobileRole } from "@/server/mobile/data";
 
@@ -15,13 +16,14 @@ export default async function CollectionsScreen() {
   const c = await getCollectionsData(ctx);
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "var(--bg-muted)",
-        paddingBottom: 100,
-      }}
-    >
+    <PullToRefresh>
+      <div
+        style={{
+          minHeight: "100dvh",
+          background: "var(--bg-muted)",
+          paddingBottom: 100,
+        }}
+      >
       <div
         style={{
           padding: "var(--m-safe-top) 18px 12px",
@@ -160,5 +162,6 @@ export default async function CollectionsScreen() {
 
       <MTabBar active={2} />
     </div>
+    </PullToRefresh>
   );
 }

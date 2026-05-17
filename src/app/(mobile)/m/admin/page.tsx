@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { IcBell, IcKey, IcSettings } from "@/components/icons";
 import { MTabBar } from "@/components/mobile/nav";
+import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import { Avatar, MSection } from "@/components/mobile/ui";
 import { getOperatorToday, resolveMobileRole } from "@/server/mobile/data";
 
@@ -22,12 +23,13 @@ export default async function AdminHomeScreen() {
   const a = await getOperatorToday(ctx);
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "var(--bg-muted)",
-        paddingBottom: 100,
-      }}
+    <PullToRefresh>
+      <div
+        style={{
+          minHeight: "100dvh",
+          background: "var(--bg-muted)",
+          paddingBottom: 100,
+        }}
     >
       {/* Header */}
       <div
@@ -248,6 +250,7 @@ export default async function AdminHomeScreen() {
 
       <MTabBar active={0} />
     </div>
+    </PullToRefresh>
   );
 }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { IcCheck, IcSettings } from "@/components/icons";
 import { MNotif } from "@/components/mobile/notif";
 import { MTabBar } from "@/components/mobile/nav";
+import { PullToRefresh } from "@/components/mobile/pull-to-refresh";
 import { Chip, MSection } from "@/components/mobile/ui";
 import { getNotificationsData, resolveMobileRole } from "@/server/mobile/data";
 
@@ -14,10 +15,11 @@ export default async function NotificationsScreen() {
   const { today, earlier, total, unread } = await getNotificationsData(ctx);
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "var(--bg-muted)",
+    <PullToRefresh>
+      <div
+        style={{
+          minHeight: "100dvh",
+          background: "var(--bg-muted)",
         paddingBottom: 100,
       }}
     >
@@ -99,6 +101,7 @@ export default async function NotificationsScreen() {
 
       <MTabBar active={3} />
     </div>
+    </PullToRefresh>
   );
 }
 

@@ -8,6 +8,7 @@ import { Badge, type BadgeTone, Card, EmptyState } from "@/components/ui";
 import { withAppScope } from "@/server/db/scoped";
 import { appScope, requireContext } from "@/server/auth/context";
 import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
+import { formatPropertyTitleValue } from "@/lib/property-value";
 
 import { FiltersBar } from "./filters-bar";
 import { ViewToggle } from "./view-toggle";
@@ -236,10 +237,10 @@ function GridView({
                 <div className="mt-auto flex items-end justify-between gap-2">
                   <div>
                     <span className="mono text-[10px] uppercase tracking-[0.1em] text-ink-500">
-                      Valor fiscal
+                      Valor estimado
                     </span>
                     <div className="num mt-0.5 text-[18px] font-semibold tracking-[-0.01em] text-ink-900">
-                      {fmtMoneyCents(p.fiscalValueCents)}
+                      {formatPropertyTitleValue(p)}
                     </div>
                   </div>
                   <Badge tone={STATUS_TONE[p.operationalStatus] ?? "neutral"}>
@@ -274,7 +275,7 @@ function ListView({
         <span>Cliente · Tipo</span>
         <span>Ciudad</span>
         <span>Estatus</span>
-        <span className="text-right">Valor fiscal</span>
+        <span className="text-right">Valor estimado</span>
       </div>
       {properties.map((p, i) => {
         const url = coverUrls[i];
@@ -323,7 +324,7 @@ function ListView({
               </Badge>
             </div>
             <p className="num text-right text-[13px] font-medium text-ink-900">
-              {fmtMoneyCents(p.fiscalValueCents)}
+              {formatPropertyTitleValue(p)}
             </p>
           </Link>
         );

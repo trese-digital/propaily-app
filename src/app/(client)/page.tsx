@@ -5,6 +5,7 @@ import { PortfolioMap, type MapPin } from "@/components/portfolio-map";
 import { Badge, type BadgeTone, Card, CardHeader, Kpi } from "@/components/ui";
 import { appScope, requireContext } from "@/server/auth/context";
 import { withAppScope } from "@/server/db/scoped";
+import { getPropertyTitleValue, formatPropertyTitleValue } from "@/lib/property-value";
 
 const numFmt = new Intl.NumberFormat("es-MX");
 const dateFmt = new Intl.DateTimeFormat("es-MX", {
@@ -63,7 +64,7 @@ export default async function HomePage() {
       portfolioCount,
       documentCount,
       recentProperties,
-      valueAgg,
+      allPropertiesForValue,
       rentAgg,
       pinRows,
       overduePaymentCount,
@@ -83,14 +84,19 @@ export default async function HomePage() {
           city: true,
           landAreaSqm: true,
           builtAreaSqm: true,
-          currentValueCents: true,
+          commercialValueCents: true,
+          purchasePriceCents: true,
           fiscalValueCents: true,
           operationalStatus: true,
         },
       }),
-      tx.property.aggregate({
+      tx.property.findMany({
         where: { deletedAt: null },
-        _sum: { currentValueCents: true, fiscalValueCents: true },
+        select: {
+          commercialValueCents: true,
+          purchasePriceCents: true,
+          fiscalValueCents: true,
+        },
       }),
       tx.unit.aggregate({
         where: { deletedAt: null },
@@ -124,7 +130,7 @@ export default async function HomePage() {
       portfolioCount,
       documentCount,
       recentProperties,
-      valueAgg,
+      allPropertiesForValue,
       rentAgg,
       pinRows,
       overduePaymentCount,
@@ -146,10 +152,11 @@ export default async function HomePage() {
       : [],
   );
 
-  const totalValue =
-    data.valueAgg._sum.currentValueCents ??
-    data.valueAgg._sum.fiscalValueCents ??
-    0n;
+  // Calculamos el valor total del portafolio sumando valores titulares de cada propiedad
+  const totalValue = data.allPropertiesForValue.reduce((sum, property) => {
+    const { valueCents } = getPropertyTitleValue(property);
+    return sum + (valueCents ?? 0n);
+  }, 0n);
   const rentTotal = data.rentAgg._sum.monthlyRentCents ?? 0n;
   const pPlural = data.propertyCount === 1 ? "" : "es";
   const portfolioWord =
@@ -343,7 +350,9 @@ export default async function HomePage() {
                 name={p.name}
                 city={p.city}
                 area={p.builtAreaSqm ?? p.landAreaSqm}
-                value={p.currentValueCents ?? p.fiscalValueCents}
+                commercialValueCents={p.commercialValueCents}
+                purchasePriceCents={p.purchasePriceCents}
+                fiscalValueCents={p.fiscalValueCents}
                 status={p.operationalStatus}
               />
             ))}
@@ -428,14 +437,18 @@ function PropertyCard({
   name,
   city,
   area,
-  value,
+  commercialValueCents,
+  purchasePriceCents,
+  fiscalValueCents,
   status,
 }: {
   id: string;
   name: string;
   city: string | null;
   area: { toNumber: () => number } | null;
-  value: bigint | null;
+  commercialValueCents: bigint | null;
+  purchasePriceCents: bigint | null;
+  fiscalValueCents: bigint | null;
   status: string;
 }) {
   return (
@@ -452,7 +465,7 @@ function PropertyCard({
             {name}
           </span>
           <span className="mono num shrink-0 text-[13px] font-medium text-ink-900">
-            {formatMxn(value)}
+            {formatPropertyTitleValue({ commercialValueCents, purchasePriceCents, fiscalValueCents })}
           </span>
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2">

@@ -5,6 +5,12 @@
 // hizo. `APP_VERSION` siempre toma la entrada más reciente. Así queda el orden.
 export const CHANGELOG = [
   {
+    version: "1.16",
+    date: "2026-05-17",
+    summary:
+      "Bloque 1 — jerarquía de valor: el valor comercial es el titular en dashboard, tarjetas y listados (fallback a precio de compra, o 'Sin Valor Comercial'); el valor fiscal pasa a dato secundario en el detalle",
+  },
+  {
     version: "1.15",
     date: "2026-05-17",
     summary:

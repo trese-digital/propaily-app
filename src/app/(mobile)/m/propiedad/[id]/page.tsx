@@ -203,7 +203,7 @@ export default async function PropertyDetailScreen({
             />
             <MetricMini
               label="Comercial"
-              value={d.catastro.comercialM2}
+              value={d.catastro.comercial}
               mono
               small
             />

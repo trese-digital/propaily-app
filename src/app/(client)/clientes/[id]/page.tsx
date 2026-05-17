@@ -14,6 +14,7 @@ import {
 import { appScope, requireContext } from "@/server/auth/context";
 import { withAppScope } from "@/server/db/scoped";
 import { NewPortfolioModal } from "../new-portfolio-modal";
+import { getPropertyTitleValue } from "@/lib/property-value";
 
 const numFmt = new Intl.NumberFormat("es-MX");
 const dateFmt = new Intl.DateTimeFormat("es-MX", {
@@ -87,7 +88,8 @@ export default async function ClienteDetallePage({
                 name: true,
                 city: true,
                 operationalStatus: true,
-                currentValueCents: true,
+                commercialValueCents: true,
+                purchasePriceCents: true,
                 fiscalValueCents: true,
               },
             },
@@ -113,10 +115,10 @@ export default async function ClienteDetallePage({
   const { client, documentCount } = result;
 
   const allProps = client.portfolios.flatMap((p) => p.properties);
-  const totalValue = allProps.reduce(
-    (s, p) => s + Number(p.currentValueCents ?? p.fiscalValueCents ?? 0n),
-    0,
-  );
+  const totalValue = allProps.reduce((s, p) => {
+    const { valueCents } = getPropertyTitleValue(p);
+    return s + Number(valueCents ?? 0n);
+  }, 0);
 
   const fiscalRows: Array<[string, string | null]> = [
     ["RFC", client.taxId],
@@ -208,11 +210,10 @@ export default async function ClienteDetallePage({
             ) : (
               <ul>
                 {client.portfolios.map((pf) => {
-                  const pfValue = pf.properties.reduce(
-                    (s, p) =>
-                      s + Number(p.currentValueCents ?? p.fiscalValueCents ?? 0n),
-                    0,
-                  );
+                  const pfValue = pf.properties.reduce((s, p) => {
+                    const { valueCents } = getPropertyTitleValue(p);
+                    return s + Number(valueCents ?? 0n);
+                  }, 0);
                   return (
                     <li
                       key={pf.id}
@@ -277,7 +278,7 @@ export default async function ClienteDetallePage({
                     </span>
                     <div className="flex items-center justify-between">
                       <span className="mono num text-xs font-semibold text-ink-900">
-                        {formatMxn(p.currentValueCents ?? p.fiscalValueCents)}
+                        {formatMxn(getPropertyTitleValue(p).valueCents)}
                       </span>
                       <Badge tone={statusTone(p.operationalStatus)}>
                         {STATUS_LABEL[p.operationalStatus] ?? p.operationalStatus}

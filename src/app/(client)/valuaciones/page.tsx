@@ -17,6 +17,7 @@ import {
 } from "@/components/ui";
 import { appScope, requireContext } from "@/server/auth/context";
 import { withAppScope } from "@/server/db/scoped";
+import { getPropertyTitleValue } from "@/lib/property-value";
 
 const numFmt = new Intl.NumberFormat("es-MX");
 const dateFmt = new Intl.DateTimeFormat("es-MX", {
@@ -50,7 +51,12 @@ export default async function ValuacionesPage() {
     tx.property.findMany({
       where: { deletedAt: null },
       orderBy: { name: "asc" },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        commercialValueCents: true,
+        purchasePriceCents: true,
+        fiscalValueCents: true,
         portfolio: { select: { name: true, client: { select: { name: true } } } },
         valuations: {
           where: { deletedAt: null },
@@ -69,12 +75,13 @@ export default async function ValuacionesPage() {
   const rows = properties.map((p) => {
     const last = p.valuations[0] ?? null;
     const req = p.valuationRequests[0] ?? null;
+    const { valueCents } = getPropertyTitleValue(p);
     return {
       id: p.id,
       name: p.name,
       clientName: p.portfolio.client.name,
       portfolioName: p.portfolio.name,
-      currentValueCents: p.currentValueCents,
+      titleValueCents: valueCents,
       lastType: last ? VALUATION_TYPE_LABEL[last.type] ?? last.type : null,
       lastDate: last ? dateFmt.format(last.valuationDate) : null,
       requestStatus: req?.status ?? null,
@@ -84,7 +91,7 @@ export default async function ValuacionesPage() {
   const valuadas = rows.filter((r) => r.lastDate != null).length;
   const abiertas = rows.filter((r) => r.requestStatus != null).length;
   const totalValor = rows.reduce(
-    (s, r) => s + (r.currentValueCents != null ? Number(r.currentValueCents) : 0),
+    (s, r) => s + (r.titleValueCents != null ? Number(r.titleValueCents) : 0),
     0,
   );
 
@@ -160,7 +167,7 @@ export default async function ValuacionesPage() {
                     </TD>
                     <TD>{r.clientName}</TD>
                     <TD>
-                      <span className="num font-medium">{fmtMxn(r.currentValueCents)}</span>
+                      <span className="num font-medium">{fmtMxn(r.titleValueCents)}</span>
                     </TD>
                     <TD>
                       {r.lastDate ? (

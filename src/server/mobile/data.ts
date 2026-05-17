@@ -13,6 +13,7 @@ import type { NotifItem, NotifType } from "@/components/mobile/notif";
 import { appScope, requireContext, type AppContext } from "@/server/auth/context";
 import { withAppScope } from "@/server/db/scoped";
 import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
+import { getPropertyTitleValue } from "@/lib/property-value";
 
 /* ───────────────────────── Formateadores ───────────────────────── */
 
@@ -84,10 +85,14 @@ export async function resolveMobileRole(): Promise<{
 
 export async function getOwnerHome(ctx: AppContext) {
   const data = await withAppScope(appScope(ctx), async (tx) => {
-    const [valueAgg, properties, valuationRequests] = await Promise.all([
-      tx.property.aggregate({
+    const [allProperties, properties, valuationRequests] = await Promise.all([
+      tx.property.findMany({
         where: { deletedAt: null },
-        _sum: { currentValueCents: true, fiscalValueCents: true },
+        select: {
+          commercialValueCents: true,
+          purchasePriceCents: true,
+          fiscalValueCents: true,
+        },
       }),
       tx.property.findMany({
         where: { deletedAt: null },
@@ -99,7 +104,8 @@ export async function getOwnerHome(ctx: AppContext) {
           city: true,
           landAreaSqm: true,
           builtAreaSqm: true,
-          currentValueCents: true,
+          commercialValueCents: true,
+          purchasePriceCents: true,
           fiscalValueCents: true,
           operationalStatus: true,
           coverPhotoStorageKey: true,
@@ -133,13 +139,13 @@ export async function getOwnerHome(ctx: AppContext) {
         lease: { select: { tenantName: true, property: { select: { name: true } } } },
       },
     });
-    return { valueAgg, properties, valuationRequests, payments };
+    return { allProperties, properties, valuationRequests, payments };
   });
 
-  const patrimonioCents =
-    data.valueAgg._sum.currentValueCents ??
-    data.valueAgg._sum.fiscalValueCents ??
-    0n;
+  const patrimonioCents = data.allProperties.reduce((sum, property) => {
+    const { valueCents } = getPropertyTitleValue(property);
+    return sum + (valueCents ?? 0n);
+  }, 0n);
 
   let rentaCents = 0n;
   for (const p of data.properties) {
@@ -152,7 +158,7 @@ export async function getOwnerHome(ctx: AppContext) {
       id: p.id,
       name: p.name,
       colony: [p.address, p.city].filter(Boolean).join(" · ") || "Sin ubicación",
-      value: mxnShort(p.currentValueCents ?? p.fiscalValueCents),
+      value: mxnShort(getPropertyTitleValue(p).valueCents),
       status: STATUS_LABEL[p.operationalStatus] ?? p.operationalStatus,
       statusTone: statusTone(p.operationalStatus),
       area: p.builtAreaSqm ?? p.landAreaSqm
@@ -214,9 +220,9 @@ export async function getPropertyDetailData(ctx: AppContext, id: string) {
         operationalStatus: true,
         landAreaSqm: true,
         builtAreaSqm: true,
-        currentValueCents: true,
-        fiscalValueCents: true,
         commercialValueCents: true,
+        purchasePriceCents: true,
+        fiscalValueCents: true,
         cartoPredioId: true,
         coverPhotoStorageKey: true,
         leases: {
@@ -247,14 +253,14 @@ export async function getPropertyDetailData(ctx: AppContext, id: string) {
       "Sin ubicación",
     status: `${STATUS_LABEL[p.operationalStatus] ?? p.operationalStatus}`,
     statusTone: statusTone(p.operationalStatus),
-    value: mxnShort(p.currentValueCents ?? p.fiscalValueCents),
+    value: mxnShort(getPropertyTitleValue(p).valueCents),
     rentMonth: lease ? mxnShort(lease.monthlyRentCents) : "—",
     area: area ? `${numFmt.format(Math.round(Number(area)))}m²` : "—",
     coverPhotoUrl,
     catastro: {
       linked: p.cartoPredioId != null,
       fiscal: mxnShort(p.fiscalValueCents),
-      comercialM2: mxnShort(p.commercialValueCents),
+      comercial: mxnShort(p.commercialValueCents),
     },
     tenant: lease
       ? {

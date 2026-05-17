@@ -14,6 +14,7 @@ import {
 } from "./valuations-section";
 import { getPropertyCoverUrl } from "@/server/properties/cover-photo";
 import { getPhotoUrl } from "@/server/properties/photos";
+import { formatPropertyTitleValueFull } from "@/lib/property-value";
 
 const VALUATION_TYPE_LABEL: Record<string, string> = {
   professional: "Profesional GF",
@@ -507,8 +508,8 @@ export default async function PropiedadDetallePage({
 
         {/* Side rail */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 80, alignSelf: "flex-start" }}>
-          <ValueCard label="Valor fiscal" value={fmtMoneyCents(p.fiscalValueCents)} primary />
-          <ValueCard label="Valor comercial" value={fmtMoneyCents(p.commercialValueCents)} />
+          <ValueCard label="Valor estimado" value={formatPropertyTitleValueFull(p)} primary />
+          <ValueCard label="Valor fiscal" value={fmtMoneyCents(p.fiscalValueCents)} />
 
           {hasGeo && (
             <Panel title="Ubicación" actions={mapHref ? <MiniLink href={mapHref}>Abrir lote</MiniLink> : null}>

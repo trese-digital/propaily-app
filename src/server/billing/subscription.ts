@@ -7,9 +7,19 @@
  */
 import { dbBypass } from "@/server/db/scoped";
 
-export type PlanTier = "starter" | "growth" | "pro" | "enterprise" | "custom";
+export type PlanTier =
+  | "starter"
+  | "growth"
+  | "pro"
+  | "enterprise"
+  | "custom"
+  | "catastro";
 
-/** Tiers de paquete por número de propiedades (ver AGENTS.md §1). */
+/**
+ * Tiers de paquete por número de propiedades (ver AGENTS.md §1).
+ * `catastro` es el plan standalone "Visor Catastral": sin gestión de
+ * propiedades, por eso su rango de propiedades es 0–0.
+ */
 export const PLAN_META: Record<
   PlanTier,
   { label: string; min: number; max: number | null }
@@ -19,6 +29,7 @@ export const PLAN_META: Record<
   pro: { label: "Pro", min: 10, max: 20 },
   enterprise: { label: "Enterprise", min: 20, max: null },
   custom: { label: "A la medida", min: 0, max: null },
+  catastro: { label: "Visor Catastral", min: 0, max: 0 },
 };
 
 export type SubscriptionSummary = {

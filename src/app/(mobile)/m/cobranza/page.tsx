@@ -160,7 +160,7 @@ export default async function CollectionsScreen() {
         ))}
       </div>
 
-      <MTabBar active={2} />
+      <MTabBar active={3} />
     </div>
     </PullToRefresh>
   );

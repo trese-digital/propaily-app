@@ -7,6 +7,7 @@ import {
   editarPropiedad,
   type PropertyFormState,
 } from "@/server/properties/actions";
+import { LocationPicker } from "@/components/maps/LocationPicker";
 
 const PROPERTY_TYPES: Array<{ value: string; label: string }> = [
   { value: "land", label: "Terreno" },
@@ -141,6 +142,7 @@ export function PropertyForm({
 
       <Field label="Dirección" error={state.fieldErrors?.address}>
         <input
+          id="property-address"
           name="address"
           defaultValue={defaults.address}
           placeholder="Calle, número, colonia"
@@ -148,28 +150,13 @@ export function PropertyForm({
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Latitud" error={state.fieldErrors?.latitude}>
-          <input
-            name="latitude"
-            type="number"
-            step="0.0000001"
-            defaultValue={defaults.latitude}
-            placeholder="21.1234567"
-            className="input"
-          />
-        </Field>
-        <Field label="Longitud" error={state.fieldErrors?.longitude}>
-          <input
-            name="longitude"
-            type="number"
-            step="0.0000001"
-            defaultValue={defaults.longitude}
-            placeholder="-101.6789012"
-            className="input"
-          />
-        </Field>
-      </div>
+      <Field label="Ubicación en el mapa" error={state.fieldErrors?.latitude ?? state.fieldErrors?.longitude}>
+        <LocationPicker
+          initialLat={defaults.latitude}
+          initialLng={defaults.longitude}
+          addressFieldId="property-address"
+        />
+      </Field>
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Superficie de terreno (m²)" error={state.fieldErrors?.landAreaSqm}>

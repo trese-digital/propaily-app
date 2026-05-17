@@ -114,7 +114,7 @@ export default async function OwnerPendingScreen() {
         ))}
       </div>
 
-      <MTabBar active={3} />
+      <MTabBar active={4} />
     </div>
   );
 }

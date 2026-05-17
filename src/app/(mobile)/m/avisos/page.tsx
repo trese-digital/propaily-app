@@ -99,7 +99,7 @@ export default async function NotificationsScreen() {
         </MSection>
       )}
 
-      <MTabBar active={3} />
+      <MTabBar active={4} />
     </div>
     </PullToRefresh>
   );

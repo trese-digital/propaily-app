@@ -28,6 +28,7 @@ const PLANS: readonly string[] = [
   "pro",
   "enterprise",
   "custom",
+  "catastro",
 ];
 const STATUSES: readonly string[] = ["active", "paused", "past_due", "cancelled"];
 const ADDONS: readonly string[] = ["cartografia", "insights", "calculadoras"];

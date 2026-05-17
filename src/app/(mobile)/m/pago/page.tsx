@@ -255,7 +255,7 @@ export default function PaymentScreen() {
         </MCard>
       </MSection>
 
-      <MTabBar active={2} />
+      <MTabBar active={3} />
     </div>
   );
 }

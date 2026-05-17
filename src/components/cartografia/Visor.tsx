@@ -34,13 +34,16 @@ const SIDEBAR_KEY = "gfc.v3.sidebar.collapsed";
 export default function Visor({
   user,
   addons,
+  catastroOnly = false,
   linkPropertyId,
 }: {
   user: { email: string | null; name: string | null };
   addons: AddonState;
+  /** Plan standalone "Visor Catastral": el rail muestra sólo Cartografía. */
+  catastroOnly?: boolean;
   linkPropertyId?: string | null;
 }) {
-  const railItems = buildRailItems(addons);
+  const railItems = buildRailItems(addons, { catastroOnly });
   const router = useRouter();
   // ---------- Estado UI ----------
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

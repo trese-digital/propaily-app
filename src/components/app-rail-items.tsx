@@ -6,6 +6,7 @@ import {
   IcKey,
   IcLayers,
   IcMap,
+  IcPin,
   IcShield,
   IcUsers,
   IcWrench,
@@ -30,24 +31,42 @@ export const APP_RAIL_WIDTH = 56;
  *
  * - **Cartografía / Insights / Calculadoras** son addons: aparecen `disabled`
  *   cuando la Subscription no los incluye, para que el cliente vea que existen.
- * - **Propiedades**, **Mantenimiento** y **Suscripción** son CORE y operativos.
+ * - **Mapa**, **Propiedades**, **Mantenimiento** y **Suscripción** son CORE.
+ * - **Mapa** (mapa base con pines de las propiedades) es CORE — distinto de
+ *   **Cartografía** (visor catastral, addon).
+ *
+ * Cuando `catastroOnly` es true (plan standalone "Visor Catastral"), sólo se
+ * deja "Cartografía": el tenant no tiene módulos de gestión.
  *
  * El gating real de acceso vive en el server (route handlers + page server
- * components), no acá.
+ * components + layout), no acá.
  */
-export function buildRailItems(addons: {
-  cartografia: boolean;
-  insights: boolean;
-  calculadoras: boolean;
-}): RailItem[] {
-  return [
+export function buildRailItems(
+  addons: {
+    cartografia: boolean;
+    insights: boolean;
+    calculadoras: boolean;
+  },
+  options?: { catastroOnly?: boolean },
+): RailItem[] {
+  const items: RailItem[] = [
     {
       id: "cartografia",
-      label: addons.cartografia ? "Cartografía" : "Cartografía · addon",
+      label:
+        addons.cartografia || options?.catastroOnly
+          ? "Cartografía"
+          : "Cartografía · addon",
       icon: <IcMap size={18} />,
-      href: addons.cartografia ? "/cartografia" : undefined,
+      href: addons.cartografia || options?.catastroOnly ? "/cartografia" : undefined,
       matchPrefix: "/cartografia",
-      disabled: !addons.cartografia,
+      disabled: !(addons.cartografia || options?.catastroOnly),
+    },
+    {
+      id: "mapa",
+      label: "Mapa",
+      icon: <IcPin size={18} />,
+      href: "/mapa",
+      matchPrefix: "/mapa",
     },
     {
       id: "propiedades",
@@ -111,4 +130,10 @@ export function buildRailItems(addons: {
       disabled: !addons.calculadoras,
     },
   ];
+
+  // Plan standalone "Visor Catastral": sólo Cartografía, sin gestión.
+  if (options?.catastroOnly) {
+    return items.filter((it) => it.id === "cartografia");
+  }
+  return items;
 }

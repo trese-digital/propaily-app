@@ -16,6 +16,7 @@ const PLANS: Array<[string, string]> = [
   ["pro", "Pro · 10–20"],
   ["enterprise", "Enterprise · 20+"],
   ["custom", "Custom"],
+  ["catastro", "Visor Catastral · standalone"],
 ];
 
 const STATUSES: Array<[string, string]> = [

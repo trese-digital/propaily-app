@@ -6,10 +6,10 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
-import { IcArrowR, IcBuilding, IcBell, IcChart, IcKey, IcUsers } from "@/components/icons";
+import { IcArrowR, IcBuilding, IcBell, IcChart, IcKey, IcPin, IcUsers } from "@/components/icons";
 import type { IconProps } from "@/components/icons";
 
-/* ───────────────────────── Tab bar (5 tabs) ─────────────────── */
+/* ───────────────────────── Tab bar (6 tabs) ─────────────────── */
 
 type TabItem = {
   id: string;
@@ -19,9 +19,13 @@ type TabItem = {
   dot?: boolean;
 };
 
+// "Mapa" es del CORE (mapa base con pines de las propiedades), distinto del
+// visor de catastro (addon, sólo en escritorio).
 const TABS: TabItem[] = [
   { id: "inicio", label: "Inicio", href: "/m/inicio", Icon: IcChart },
   { id: "prop", label: "Propiedades", href: "/m/propiedades", Icon: IcBuilding },
+  // `/m/mapa` existe; el cast evita depender de `.next/types` recién generado.
+  { id: "mapa", label: "Mapa", href: "/m/mapa" as Route, Icon: IcPin },
   { id: "rentas", label: "Rentas", href: "/m/pago", Icon: IcKey },
   { id: "avisos", label: "Avisos", href: "/m/avisos", Icon: IcBell, dot: true },
   { id: "yo", label: "Tú", href: "/m/perfil", Icon: IcUsers },

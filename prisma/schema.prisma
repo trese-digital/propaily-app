@@ -995,6 +995,9 @@ enum SubscriptionPlan {
   pro
   enterprise
   custom
+  // Plan standalone "Visor Catastral": solo acceso al visor de catastro,
+  // sin gestión de propiedades. Ver Bloque 2.
+  catastro
 
   @@schema("propaily")
 }

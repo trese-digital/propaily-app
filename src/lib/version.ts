@@ -5,6 +5,12 @@
 // hizo. `APP_VERSION` siempre toma la entrada más reciente. Así queda el orden.
 export const CHANGELOG = [
   {
+    version: "1.17",
+    date: "2026-05-17",
+    summary:
+      "Bloque 2 — mapa base (core): nuevo /mapa y /m/mapa con las propiedades como pines y pin picker en el formulario; el visor de catastro queda separado como addon; plan standalone 'Visor Catastral'",
+  },
+  {
     version: "1.16",
     date: "2026-05-17",
     summary:

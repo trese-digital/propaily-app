@@ -186,7 +186,7 @@ export default async function ProfileScreen() {
         </span>
       </div>
 
-      <MTabBar active={4} />
+      <MTabBar active={5} />
     </div>
   );
 }

@@ -32,6 +32,12 @@ const NAV: NavItem[] = [
     matchPrefix: "/admin/avaluos",
   },
   {
+    href: "/admin/comparables",
+    label: "Comparables",
+    icon: <IconChart />,
+    matchPrefix: "/admin/comparables",
+  },
+  {
     href: "/admin/cartografia",
     label: "Cartografía",
     icon: <IconMap />,
@@ -262,6 +268,14 @@ function IconClose() {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+function IconChart() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" />
+      <path d="m19 9-5 5-4-4-3 3" />
     </svg>
   );
 }

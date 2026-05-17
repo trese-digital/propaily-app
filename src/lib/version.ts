@@ -5,6 +5,12 @@
 // hizo. `APP_VERSION` siempre toma la entrada más reciente. Así queda el orden.
 export const CHANGELOG = [
   {
+    version: "1.18",
+    date: "2026-05-17",
+    summary:
+      "Bloque 3 — comparables de mercado: backoffice GF en /admin/comparables (alta manual con pin + carga bulk CSV), geo-resolución a colonia/sector del catastro, y auto-derivación de comparables desde avalúos comerciales",
+  },
+  {
     version: "1.17",
     date: "2026-05-17",
     summary:

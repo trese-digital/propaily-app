@@ -8,6 +8,7 @@ import { requireContext } from "@/server/auth/context";
 import { isGfStaff } from "@/server/auth/is-gf-staff";
 import { dbBypass } from "@/server/db/scoped";
 import { logAdminAccess } from "@/server/audit/log";
+import { resolveFromFormData } from "@/server/comparables/geo";
 
 /**
  * Valuaciones — lado backoffice GF (S6).
@@ -109,7 +110,17 @@ export async function registrarValuacion(
 
   const prop = await dbBypass.property.findUnique({
     where: { id: v.propertyId },
-    select: { id: true, deletedAt: true },
+    select: {
+      id: true,
+      deletedAt: true,
+      excluirDeComparables: true,
+      type: true,
+      latitude: true,
+      longitude: true,
+      landAreaSqm: true,
+      builtAreaSqm: true,
+      purchaseDate: true
+    },
   });
   if (!prop || prop.deletedAt) {
     return { error: "La propiedad no existe." };
@@ -167,6 +178,16 @@ export async function registrarValuacion(
     metadata: { propertyId: v.propertyId, type, valueCents: valueCents.toString() },
   });
 
+  // Auto-derivación de comparable si es valuación comercial y no está excluida
+  if (type === "commercial" && !prop.excluirDeComparables) {
+    await createComparableFromValuation(valuation.id, prop, ctx.user.id).catch(
+      (error) => {
+        // No fallar la valuación por error en comparable
+        console.error("[valuations] Error al crear comparable:", error);
+      }
+    );
+  }
+
   revalidatePath("/admin/avaluos");
   revalidatePath(`/propiedades/${v.propertyId}`);
   return { ok: true };
@@ -202,6 +223,77 @@ export async function tomarSolicitud(
 
   revalidatePath("/admin/avaluos");
   return { ok: true };
+}
+
+/**
+ * Crea un comparable derivado de una valuación comercial.
+ */
+async function createComparableFromValuation(
+  valuationId: string,
+  property: {
+    type: string;
+    latitude: any;
+    longitude: any;
+    landAreaSqm: any;
+    builtAreaSqm: any;
+    purchaseDate: Date | null;
+  },
+  createdById: string
+): Promise<void> {
+  // Obtener la valuación recién creada
+  const valuation = await dbBypass.valuation.findUnique({
+    where: { id: valuationId },
+    select: {
+      valueCents: true,
+      valuationDate: true,
+      currency: true,
+    },
+  });
+
+  if (!valuation) {
+    throw new Error("Valuación no encontrada");
+  }
+
+  // Geo-resolución si hay coordenadas
+  let geoResolution = null;
+  if (property.latitude && property.longitude) {
+    geoResolution = await resolveFromFormData(
+      property.latitude.toString(),
+      property.longitude.toString()
+    );
+  }
+
+  // Calcular antigüedad aproximada si hay fecha de compra
+  let ageYears: number | null = null;
+  if (property.purchaseDate) {
+    const diffMs = valuation.valuationDate.getTime() - property.purchaseDate.getTime();
+    ageYears = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365));
+  }
+
+  // Determinar status de ubicación
+  const hasCoords = !!(property.latitude && property.longitude);
+  const locationStatus = hasCoords && geoResolution ? "geolocalizado" : "sin_ubicar";
+
+  await dbBypass.comparable.create({
+    data: {
+      valueCents: valuation.valueCents,
+      currency: valuation.currency,
+      comparableDate: valuation.valuationDate,
+      tipo: "valuacion_propaily",
+      propertyType: property.type as any,
+      landAreaSqm: property.landAreaSqm,
+      builtAreaSqm: property.builtAreaSqm,
+      ageYears,
+      latitude: property.latitude,
+      longitude: property.longitude,
+      coloniaId: geoResolution?.coloniaId ?? null,
+      sectorNumber: geoResolution?.sectorNumber ?? null,
+      locationStatus: locationStatus as any,
+      source: "Auto-generado desde valuación comercial",
+      sourceValuationId: valuationId,
+      createdById,
+    },
+  });
 }
 
 /** Cierra una solicitud sin registrar valuación (p. ej. rechazada o resuelta aparte). */

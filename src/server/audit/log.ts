@@ -21,6 +21,7 @@ export type AuditAction =
   | "view"
   | "list"
   | "create"
+  | "create_bulk"
   | "update"
   | "delete"
   | "impersonate";

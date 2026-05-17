@@ -209,6 +209,8 @@ model Property {
   cartoColoniaId        String?         @db.Uuid
   // Foto de portada (Supabase Storage key)
   coverPhotoStorageKey  String?
+  // Bloque 3: exclusión de comparables (confidencialidad)
+  excluirDeComparables  Boolean         @default(false)
   status                EntityStatus    @default(active)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
@@ -1007,6 +1009,60 @@ enum SubscriptionStatus {
   paused
   past_due
   cancelled
+
+  @@schema("propaily")
+}
+
+enum ComparableTipo {
+  avaluo
+  pagina_web
+  portal_inmobiliario
+  valuacion_propaily
+  otro
+
+  @@schema("propaily")
+}
+
+enum ComparableLocationStatus {
+  geolocalizado
+  colonia_manual
+  sin_ubicar
+
+  @@schema("propaily")
+}
+
+// Comparables de mercado — datos recopilados por GF para análisis.
+// NO es tenant-scoped: es data de mercado propia de GF, compartida.
+// Excepción legítima a la regla de multi-tenancy (ver AGENTS.md §2).
+model Comparable {
+  id                   String                   @id @default(uuid())
+  valueCents           BigInt
+  currency             Currency                 @default(MXN)
+  comparableDate       DateTime
+  tipo                 ComparableTipo
+  propertyType         PropertyType
+  landAreaSqm          Decimal?                 @db.Decimal(14, 2)
+  builtAreaSqm         Decimal?                 @db.Decimal(14, 2)
+  ageYears             Int?
+  usoSuelo             String?
+  latitude             Decimal?                 @db.Decimal(10, 7)
+  longitude            Decimal?                 @db.Decimal(10, 7)
+  coloniaId            String?                  @db.Uuid // apunta a public.colonias (sin FK)
+  sectorNumber         Int?
+  locationStatus       ComparableLocationStatus
+  address              String?
+  source               String?
+  notes                String?
+  sourceValuationId    String?  // si derivado de un Valuation
+  createdById          String?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  deletedAt            DateTime?
+
+  @@index([coloniaId])
+  @@index([sectorNumber])
+  @@index([comparableDate])
+  @@index([tipo])
 
   @@schema("propaily")
 }
